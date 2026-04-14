@@ -1,0 +1,10 @@
+<?php
+
+use App\Http\Controllers\Api\OnboardingController;
+use Illuminate\Support\Facades\Route;
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/onboarding/basic-info', [OnboardingController::class, 'storeBasicInfo']);
+    Route::post('/onboarding/verification', [OnboardingController::class, 'uploadVerification']);
+    Route::post('/onboarding/talent', [OnboardingController::class, 'storeTalent']);
+});
