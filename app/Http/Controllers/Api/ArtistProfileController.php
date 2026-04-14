@@ -38,7 +38,6 @@ class ArtistProfileController extends Controller
         $profile = $user->artistProfile;
 
         $validated = $request->validate([
-            // Basic Info
             'full_name' => 'sometimes|string|max:255',
             'stage_name' => 'sometimes|string|max:255',
             'location' => 'sometimes|string|max:255',
@@ -48,16 +47,13 @@ class ArtistProfileController extends Controller
             'tags' => 'sometimes|array',
             'short_bio' => 'sometimes|string',
 
-            // Overview
             'bio_1' => 'sometimes|string',
             'bio_2' => 'sometimes|string',
             'paragraph' => 'sometimes|string',
 
-            // Pricing
             'starting_price' => 'sometimes|numeric|min:0',
             'max_price' => 'sometimes|numeric|min:0',
 
-            // Socials
             'youtube_link' => 'sometimes|nullable|url',
             'facebook_link' => 'sometimes|nullable|url',
             'instagram_link' => 'sometimes|nullable|url',
@@ -79,7 +75,7 @@ class ArtistProfileController extends Controller
     {
         $request->validate([
             'type' => 'required|in:avatar,cover',
-            'file' => 'required|image|max:5120', // 5MB max
+            'file' => 'required|image|max:5120',
         ]);
 
         $user = $request->user();
@@ -178,7 +174,6 @@ class ArtistProfileController extends Controller
 
         $user = $request->user();
 
-        // Clear only the external talent media links
         $user->artistMedia()->where('is_external_link', true)->where('purpose', 'talent_media')->delete();
 
         foreach ($request->links as $link) {
