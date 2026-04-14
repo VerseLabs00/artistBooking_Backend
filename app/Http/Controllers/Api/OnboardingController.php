@@ -5,25 +5,14 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\ArtistMedia;
 use App\Models\ArtistProfile;
+use App\Traits\HandlesCloudinaryUploads;
 use Illuminate\Http\Request;
-use Cloudinary\Cloudinary;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class OnboardingController extends Controller
 {
-    private $cloudinary;
-
-    public function __construct()
-    {
-        $this->cloudinary = new Cloudinary(config('services.cloudinary.url'));
-
-        // SMART TOGGLE: Bypass SSL on local Windows dev, keep secure in Production
-        if (app()->environment('local')) {
-            $this->cloudinary->configuration->api->uploadPrefix = 'http://api.cloudinary.com';
-            $this->cloudinary->configuration->api->secure = false;
-        }
-    }
+    use HandlesCloudinaryUploads;
 
     /**
      * Step 1: Store Basic Information
@@ -136,10 +125,7 @@ class OnboardingController extends Controller
     {
         $resourceType = ($type === 'video') ? 'video' : (($type === 'document' && $file->getClientOriginalExtension() === 'pdf') ? 'raw' : 'image');
 
-        $upload = $this->cloudinary->uploadApi()->upload($file->getRealPath(), [
-            'folder' => "artists/{$userId}/{$purpose}",
-            'resource_type' => $resourceType
-        ]);
+        $upload = $this->uploadFile($file, "artists/{$userId}/{$purpose}", $resourceType);
 
         return ArtistMedia::create([
             'user_id' => $userId,
