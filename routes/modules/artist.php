@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\ArtistBankController;
 use App\Http\Controllers\Api\ArtistProfileController;
+use App\Http\Controllers\Api\ArtistBookingRequestController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->group(function () {
@@ -23,4 +24,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Booking system: fetch full bank details for a confirmed booking payment
     // Pass ?artistProfileId= of the booked artist
     Route::get('/profile/bank/booking-view/{artistProfileId}', [ArtistBankController::class, 'bookingView']);
+
+    // ── Artist Incoming Bookings ────────────────────────────────────────────────
+    Route::get('/bookings', [ArtistBookingRequestController::class, 'index']);
+    Route::get('/bookings/{id}', [ArtistBookingRequestController::class, 'show']);
+    Route::put('/bookings/{id}/status', [ArtistBookingRequestController::class, 'updateStatus']);
 });
