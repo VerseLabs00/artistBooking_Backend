@@ -16,8 +16,8 @@ class BookingController extends Controller
     private function payhereConfig(): array
     {
         return [
-            'merchant_id'     => config('services.payhere.merchant_id'),
-            'merchant_secret' => config('services.payhere.merchant_secret'),
+            'merchant_id'     => (string) config('services.payhere.merchant_id', ''),
+            'merchant_secret' => (string) config('services.payhere.merchant_secret', ''),
             'sandbox'         => config('services.payhere.sandbox', true),
             'checkout_url'    => config('services.payhere.sandbox', true)
                                     ? 'https://sandbox.payhere.lk/pay/checkout'
