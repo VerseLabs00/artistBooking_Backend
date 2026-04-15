@@ -130,12 +130,10 @@ class ArtistDiscoveryController extends Controller
             ->where('is_onboarded', true)
             ->findOrFail($id);
 
-        // Load gallery images separately (purpose = performance)
         $gallery = $artist->user->artistMedia()
             ->where('purpose', 'performance')
             ->get(['id', 'media_type', 'url', 'is_external_link']);
 
-        // Rating summary
         $ratingData = $artist->reviews()
             ->approved()
             ->selectRaw('COUNT(*) as total, AVG(rating) as average')
@@ -189,18 +187,18 @@ class ArtistDiscoveryController extends Controller
      */
     public function reviews(string $id, Request $request)
     {
-        // Ensure the artist exists and is onboarded
+
         $artist = ArtistProfile::where('is_onboarded', true)->findOrFail($id);
 
         $perPage = $request->integer('per_page', 10);
 
         $reviews = $artist->reviews()
             ->approved()
-            ->with('customer:id,name')          // only expose safe customer fields
+            ->with('customer:id,name')
             ->orderByDesc('created_at')
             ->paginate($perPage);
 
-        // Rating distribution (star breakdown)
+
         $distribution = $artist->reviews()
             ->approved()
             ->selectRaw('rating, COUNT(*) as count')
@@ -253,7 +251,7 @@ class ArtistDiscoveryController extends Controller
             'rating'         => 'required|integer|min:1|max:5',
             'title'          => 'nullable|string|max:150',
             'body'           => 'nullable|string|max:2000',
-            // Only required for guest (non-authenticated) reviewers
+
             'reviewer_name'  => 'nullable|string|max:100',
             'reviewer_email' => 'nullable|email|max:255',
         ]);
@@ -262,7 +260,6 @@ class ArtistDiscoveryController extends Controller
         $reviewerName  = $request->reviewer_name;
         $reviewerEmail = $request->reviewer_email;
 
-        // If an auth token is present, resolve user from it
         if ($request->bearerToken()) {
             $user = $request->user('sanctum');
             if ($user) {
@@ -270,7 +267,6 @@ class ArtistDiscoveryController extends Controller
                 $reviewerName  = $reviewerName ?? $user->name;
                 $reviewerEmail = $reviewerEmail ?? $user->email;
 
-                // Prevent duplicate review from same customer
                 $exists = ArtistReview::where('artist_profile_id', $artist->id)
                     ->where('customer_id', $customerId)
                     ->exists();
@@ -291,7 +287,7 @@ class ArtistDiscoveryController extends Controller
             'rating'            => $request->rating,
             'title'             => $request->title,
             'body'              => $request->body,
-            'status'            => 'approved',   // auto-approve; add moderation later if needed
+            'status'            => 'approved',
         ]);
 
         return response()->json([
