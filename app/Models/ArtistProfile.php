@@ -69,4 +69,9 @@ class ArtistProfile extends Model
     {
         return $this->hasMany(ArtistReview::class);
     }
+
+    public function bankDetails()
+    {
+        return $this->hasOne(ArtistBankDetail::class);
+    }
 }
