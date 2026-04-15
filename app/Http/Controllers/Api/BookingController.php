@@ -52,6 +52,8 @@ class BookingController extends Controller
             'event_duration_hours' => 'nullable|numeric|min:0.5|max:24',
             'event_type'           => 'required|string|max:100',
             'venue'                => 'required|string|max:255',
+            'venue_lat'            => 'nullable|numeric|between:-90,90',
+            'venue_lng'            => 'nullable|numeric|between:-180,180',
             'special_notes'        => 'nullable|string|max:1000',
         ]);
 
@@ -75,6 +77,8 @@ class BookingController extends Controller
             'event_duration_hours' => $validated['event_duration_hours'] ?? 2.0,
             'event_type'           => $validated['event_type'],
             'venue'                => $validated['venue'],
+            'venue_lat'            => $validated['venue_lat'] ?? null,
+            'venue_lng'            => $validated['venue_lng'] ?? null,
             'special_notes'        => $validated['special_notes'] ?? null,
             'agreed_price'         => $agreedPrice,
             'advance_amount'       => $advanceAmount,
@@ -292,6 +296,8 @@ class BookingController extends Controller
             'event_start_time'=> $b->event_start_time,
             'event_type'      => $b->event_type,
             'venue'           => $b->venue,
+            'venue_lat'       => $b->venue_lat,
+            'venue_lng'       => $b->venue_lng,
             'agreed_price'    => $b->agreed_price,
             'advance_amount'  => $b->advance_amount,
             'balance_due'     => (float) $b->agreed_price - (float) $b->advance_amount,
