@@ -1,0 +1,38 @@
+<?php
+
+use App\Http\Controllers\Api\Admin\ArtistController;
+use App\Http\Controllers\Api\Admin\BookingController;
+use App\Http\Controllers\Api\Admin\CustomerController;
+use App\Http\Controllers\Api\Admin\DashboardController;
+use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| Admin API Routes
+|--------------------------------------------------------------------------
+|
+| All routes are grouped under /api/admin and protected by auth and admin middleware.
+|
+*/
+
+Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
+    
+    // ── Dashboard ──────────────────────────────────────────────────────────────
+    Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
+
+    // ── Artist Management ──────────────────────────────────────────────────────
+    Route::get('/artists', [ArtistController::class, 'index']);
+    Route::get('/artists/{id}', [ArtistController::class, 'show']);
+    Route::put('/artists/{id}/verify', [ArtistController::class, 'verify']);
+    Route::put('/artists/{id}/toggle-onboard', [ArtistController::class, 'toggleOnboard']);
+    Route::delete('/artists/{id}', [ArtistController::class, 'destroy']);
+
+    // ── Booking Management ─────────────────────────────────────────────────────
+    Route::get('/bookings', [BookingController::class, 'index']);
+    Route::get('/bookings/{id}', [BookingController::class, 'show']);
+    Route::put('/bookings/{id}/status', [BookingController::class, 'updateStatus']);
+
+    // ── Customer Management ────────────────────────────────────────────────────
+    Route::get('/customers', [CustomerController::class, 'index']);
+    Route::get('/customers/{id}', [CustomerController::class, 'show']);
+});

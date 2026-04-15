@@ -7,6 +7,24 @@ use Illuminate\Database\Eloquent\Model;
 
 class ArtistProfile extends Model
 {
+    // ── Computed attributes ────────────────────────────────────────────────────
+
+    /**
+     * Average star rating across all approved reviews.
+     */
+    public function getAverageRatingAttribute(): ?float
+    {
+        $avg = $this->reviews()->approved()->avg('rating');
+        return $avg ? round((float) $avg, 1) : null;
+    }
+
+    /**
+     * Total number of approved reviews.
+     */
+    public function getReviewCountAttribute(): int
+    {
+        return $this->reviews()->approved()->count();
+    }
     use HasUuids;
 
     protected $fillable = [
@@ -45,5 +63,15 @@ class ArtistProfile extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function reviews()
+    {
+        return $this->hasMany(ArtistReview::class);
+    }
+
+    public function bankDetails()
+    {
+        return $this->hasOne(ArtistBankDetail::class);
     }
 }
