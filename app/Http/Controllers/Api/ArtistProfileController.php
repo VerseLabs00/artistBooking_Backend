@@ -14,18 +14,57 @@ class ArtistProfileController extends Controller
 
     /**
      * Display the authenticated artist's profile.
+     * Includes media, and a full rating summary (average, total, distribution, recent reviews).
      */
     public function show(Request $request)
     {
-        $profile = $request->user()->artistProfile()->with('user.artistMedia')->first();
+        $user    = $request->user();
+        $profile = $user->artistProfile()->with('user.artistMedia')->first();
 
         if (!$profile) {
             return response()->json(['message' => 'Profile not found'], 404);
         }
 
+        // ── Rating summary ─────────────────────────────────────────────────────
+        $reviewsQuery = $profile->reviews()->approved();
+
+        $totalReviews = (clone $reviewsQuery)->count();
+        $avgRating    = (clone $reviewsQuery)->avg('rating');
+
+        $distribution = (clone $reviewsQuery)
+            ->selectRaw('rating, COUNT(*) as count')
+            ->groupBy('rating')
+            ->pluck('count', 'rating');
+
+        $recentReviews = (clone $reviewsQuery)
+            ->with('customer:id,name')
+            ->orderByDesc('created_at')
+            ->limit(3)
+            ->get()
+            ->map(fn ($r) => [
+                'id'            => $r->id,
+                'rating'        => $r->rating,
+                'title'         => $r->title,
+                'body'          => $r->body,
+                'reviewer_name' => $r->reviewer_name ?? ($r->customer?->name ?? 'Anonymous'),
+                'created_at'    => $r->created_at->toDateString(),
+            ]);
+
         return response()->json([
             'profile' => $profile,
-            'media' => $request->user()->artistMedia
+            'media'   => $user->artistMedia,
+            'rating'  => [
+                'average'        => $avgRating ? round((float) $avgRating, 1) : null,
+                'total'          => $totalReviews,
+                'distribution'   => [
+                    5 => (int) ($distribution[5] ?? 0),
+                    4 => (int) ($distribution[4] ?? 0),
+                    3 => (int) ($distribution[3] ?? 0),
+                    2 => (int) ($distribution[2] ?? 0),
+                    1 => (int) ($distribution[1] ?? 0),
+                ],
+                'recent_reviews' => $recentReviews,
+            ],
         ]);
     }
 

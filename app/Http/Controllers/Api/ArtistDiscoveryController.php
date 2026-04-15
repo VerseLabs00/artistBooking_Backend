@@ -134,10 +134,32 @@ class ArtistDiscoveryController extends Controller
             ->where('purpose', 'performance')
             ->get(['id', 'media_type', 'url', 'is_external_link']);
 
-        $ratingData = $artist->reviews()
-            ->approved()
-            ->selectRaw('COUNT(*) as total, AVG(rating) as average')
-            ->first();
+        // ── Rating summary ─────────────────────────────────────────────────────
+        $reviewsQuery = $artist->reviews()->approved();
+
+        $totalReviews = (clone $reviewsQuery)->count();
+        $avgRating    = (clone $reviewsQuery)->avg('rating');
+
+        // Star distribution (1–5 breakdown)
+        $distribution = (clone $reviewsQuery)
+            ->selectRaw('rating, COUNT(*) as count')
+            ->groupBy('rating')
+            ->pluck('count', 'rating');
+
+        // Embed last 3 reviews in the profile response
+        $recentReviews = (clone $reviewsQuery)
+            ->with('customer:id,name')
+            ->orderByDesc('created_at')
+            ->limit(3)
+            ->get()
+            ->map(fn ($r) => [
+                'id'            => $r->id,
+                'rating'        => $r->rating,
+                'title'         => $r->title,
+                'body'          => $r->body,
+                'reviewer_name' => $r->reviewer_name ?? ($r->customer?->name ?? 'Anonymous'),
+                'created_at'    => $r->created_at->toDateString(),
+            ]);
 
         return response()->json([
             'artist' => [
@@ -161,8 +183,16 @@ class ArtistDiscoveryController extends Controller
                 'spotify_link'     => $artist->spotify_link,
                 'verification_status' => $artist->verification_status,
                 'rating' => [
-                    'average' => $ratingData->average ? round((float) $ratingData->average, 1) : null,
-                    'total'   => (int) $ratingData->total,
+                    'average'      => $avgRating ? round((float) $avgRating, 1) : null,
+                    'total'        => $totalReviews,
+                    'distribution' => [
+                        5 => (int) ($distribution[5] ?? 0),
+                        4 => (int) ($distribution[4] ?? 0),
+                        3 => (int) ($distribution[3] ?? 0),
+                        2 => (int) ($distribution[2] ?? 0),
+                        1 => (int) ($distribution[1] ?? 0),
+                    ],
+                    'recent_reviews' => $recentReviews,
                 ],
                 'media'   => $artist->user->artistMedia->map(fn ($m) => [
                     'id'               => $m->id,
