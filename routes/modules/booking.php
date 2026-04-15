@@ -3,16 +3,6 @@
 use App\Http\Controllers\Api\BookingController;
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| Booking Routes
-|--------------------------------------------------------------------------
-|
-| /api/bookings/notify  — PUBLIC (PayHere webhook, no auth)
-| All other booking routes — auth:sanctum required
-|
-*/
-
 // PayHere webhook — must be public, no auth, no CSRF
 Route::post('bookings/notify', [BookingController::class, 'notify'])
      ->name('bookings.notify');

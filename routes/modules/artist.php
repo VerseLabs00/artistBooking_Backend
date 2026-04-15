@@ -15,14 +15,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/profile/sync-links', [ArtistProfileController::class, 'syncExternalLinks']);
 
     // ── Bank Details ───────────────────────────────────────────────────────────
-    // Artist: view own bank details (masked account number by default)
     Route::get('/profile/bank', [ArtistBankController::class, 'show']);
 
     // Artist: save or update bank details
     Route::post('/profile/bank', [ArtistBankController::class, 'upsert']);
 
     // Booking system: fetch full bank details for a confirmed booking payment
-    // Pass ?artistProfileId= of the booked artist
     Route::get('/profile/bank/booking-view/{artistProfileId}', [ArtistBankController::class, 'bookingView']);
 
     // ── Artist Incoming Bookings ────────────────────────────────────────────────
