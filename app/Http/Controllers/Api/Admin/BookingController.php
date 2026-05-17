@@ -8,11 +8,7 @@ use Illuminate\Http\Request;
 
 class BookingController extends Controller
 {
-    /**
-     * List all bookings on the platform.
-     * 
-     * GET /api/admin/bookings
-     */
+
     public function index(Request $request)
     {
         $query = Booking::with(['customer:id,name,email', 'artistProfile:id,stage_name,full_name']);
@@ -35,22 +31,14 @@ class BookingController extends Controller
         return response()->json($bookings);
     }
 
-    /**
-     * Show detailed view of any booking.
-     * 
-     * GET /api/admin/bookings/{id}
-     */
+
     public function show($id)
     {
         $booking = Booking::with(['customer', 'artistProfile'])->findOrFail($id);
         return response()->json($booking);
     }
 
-    /**
-     * Manually update a booking status.
-     * 
-     * PUT /api/admin/bookings/{id}/status
-     */
+
     public function updateStatus(Request $request, $id)
     {
         $request->validate([
@@ -60,7 +48,7 @@ class BookingController extends Controller
         $booking = Booking::findOrFail($id);
         $booking->update(['booking_status' => $request->status]);
 
-        // Notify the customer/client
+
         \App\Models\Notification::sendToUser(
             $booking->customer_id,
             'booking',
@@ -69,7 +57,7 @@ class BookingController extends Controller
             "/bookings"
         );
 
-        // Notify the artist
+
         if ($booking->artistProfile && $booking->artistProfile->user_id) {
             \App\Models\Notification::sendToUser(
                 $booking->artistProfile->user_id,

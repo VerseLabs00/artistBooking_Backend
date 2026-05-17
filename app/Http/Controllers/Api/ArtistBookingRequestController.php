@@ -8,25 +8,18 @@ use Illuminate\Http\Request;
 
 class ArtistBookingRequestController extends Controller
 {
-    /**
-     * List bookings mapped to the authenticated artist's profile.
-     * 
-     * GET /api/artist/bookings
-     */
+
     public function index(Request $request)
     {
         $user = $request->user();
 
-        // Ensure user has an artist profile
+
         if (!$user->artistProfile) {
             return response()->json(['message' => 'Artist profile not found'], 404);
         }
 
-        // Fetch bookings for this artist profile
-        // Filtering out pending_payment might be necessary if you only want to show them fully paid ones,
-        // but often artists want to see pending requests too.
         $bookings = Booking::where('artist_profile_id', $user->artistProfile->id)
-            ->with('customer:id,name,email') // Load customer basic info if relationship exists (needs to be defined in Booking model)
+            ->with('customer:id,name,email')
             ->orderByDesc('event_date')
             ->paginate(10);
 
@@ -40,11 +33,7 @@ class ArtistBookingRequestController extends Controller
         ]);
     }
 
-    /**
-     * Show a single booking request.
-     * 
-     * GET /api/artist/bookings/{id}
-     */
+
     public function show(string $id, Request $request)
     {
         $user = $request->user();
@@ -61,12 +50,7 @@ class ArtistBookingRequestController extends Controller
         ]);
     }
 
-    /**
-     * (Optional) Update Booking Status
-     * Artists might need to accept, mark as completed, or reject.
-     * 
-     * PUT /api/artist/bookings/{id}/status
-     */
+
     public function updateStatus(string $id, Request $request)
     {
         $user = $request->user();
@@ -76,26 +60,25 @@ class ArtistBookingRequestController extends Controller
         }
 
         $validated = $request->validate([
-            'status' => 'required|in:rejected,completed' // Artist can reject or complete, but cannot change from pending -> confirmed (that's via webhook)
+            'status' => 'required|in:rejected,completed'
         ]);
 
         $booking = Booking::where('artist_profile_id', $user->artistProfile->id)
             ->findOrFail($id);
-            
-        // Basic logic: only allow certain transitions
+
+
         if ($booking->booking_status === 'cancelled' || $booking->booking_status === 'completed') {
             return response()->json(['message' => 'Cannot update a completed or cancelled booking.'], 400);
         }
 
         $booking->update(['booking_status' => $validated['status']]);
 
-        // Trigger notification and email to the Customer/Client
         $artistName = $user->artistProfile ? ($user->artistProfile->stage_name ?: $user->artistProfile->full_name) : 'The artist';
         \App\Models\Notification::sendToUser(
             $booking->customer_id,
             'booking',
             $validated['status'] === 'rejected' ? 'Booking Rejected' : 'Booking Completed',
-            $validated['status'] === 'rejected' 
+            $validated['status'] === 'rejected'
                 ? "Your booking #{$booking->payhere_order_id} was rejected by {$artistName}."
                 : "Your booking #{$booking->payhere_order_id} with {$artistName} has been completed.",
             "/bookings"
@@ -107,9 +90,7 @@ class ArtistBookingRequestController extends Controller
         ]);
     }
 
-    /**
-     * Helper to format booking data for the artist.
-     */
+
     private function formatForArtist(Booking $b, bool $detailed = false): array
     {
         $data = [

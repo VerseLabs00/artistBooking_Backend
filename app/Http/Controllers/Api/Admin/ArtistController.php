@@ -8,11 +8,7 @@ use Illuminate\Http\Request;
 
 class ArtistController extends Controller
 {
-    /**
-     * List all artists with pagination and filters.
-     * 
-     * GET /api/admin/artists
-     */
+
     public function index(Request $request)
     {
         $query = ArtistProfile::with('user:id,name,email');
@@ -35,22 +31,14 @@ class ArtistController extends Controller
         return response()->json($artists);
     }
 
-    /**
-     * Show details of a specific artist.
-     * 
-     * GET /api/admin/artists/{id}
-     */
+
     public function show($id)
     {
         $artist = ArtistProfile::with(['user', 'bankDetails', 'user.artistMedia'])->findOrFail($id);
         return response()->json($artist);
     }
 
-    /**
-     * Verify (Approve/Reject) an artist profile.
-     * 
-     * PUT /api/admin/artists/{id}/verify
-     */
+
     public function verify(Request $request, $id)
     {
         $request->validate([
@@ -69,17 +57,13 @@ class ArtistController extends Controller
         ]);
     }
 
-    /**
-     * Toggle the onboarded visibility status of an artist.
-     * 
-     * PUT /api/admin/artists/{id}/toggle-onboard
-     */
+
     public function toggleOnboard($id)
     {
         $artist = ArtistProfile::findOrFail($id);
         $artist->update(['is_onboarded' => !$artist->is_onboarded]);
 
-        // Trigger notification and email to administrators
+
         $artistName = $artist->stage_name ?: $artist->full_name;
         \App\Models\Notification::sendToAdmins(
             'artist',
@@ -88,7 +72,7 @@ class ArtistController extends Controller
             "/artists/{$id}"
         );
 
-        // Notify the artist directly of their profile status change
+
         if ($artist->user_id) {
             \App\Models\Notification::sendToUser(
                 $artist->user_id,
@@ -105,11 +89,7 @@ class ArtistController extends Controller
         ]);
     }
 
-    /**
-     * Delete an artist profile and potentially the user account.
-     * 
-     * DELETE /api/admin/artists/{id}
-     */
+
     public function destroy($id)
     {
         $artist = ArtistProfile::findOrFail($id);

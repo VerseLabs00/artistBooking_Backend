@@ -24,7 +24,7 @@ class ArtistReview extends Model
         'rating' => 'integer',
     ];
 
-    // ── Relationships ──────────────────────────────────────────────────────────
+
 
     public function artistProfile()
     {
@@ -36,7 +36,7 @@ class ArtistReview extends Model
         return $this->belongsTo(User::class, 'customer_id');
     }
 
-    // ── Scopes ─────────────────────────────────────────────────────────────────
+
 
     public function scopeApproved($query)
     {

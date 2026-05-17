@@ -8,12 +8,7 @@ use Illuminate\Http\Request;
 
 class CustomerController extends Controller
 {
-    /**
-     * List all customers with optional search and status filter.
-     *
-     * GET /api/admin/customers
-     * Query params: search, status (active|banned), per_page
-     */
+
     public function index(Request $request)
     {
         $query = User::where('role', 'client');
@@ -37,11 +32,7 @@ class CustomerController extends Controller
         return response()->json($query->paginate($request->integer('per_page', 15)));
     }
 
-    /**
-     * Show customer details and their booking stats.
-     *
-     * GET /api/admin/customers/{id}
-     */
+
     public function show($id)
     {
         $customer = User::where('role', 'client')->findOrFail($id);
@@ -58,17 +49,13 @@ class CustomerController extends Controller
         ]);
     }
 
-    /**
-     * Ban a customer account.
-     *
-     * PUT /api/admin/customers/{id}/ban
-     */
+
     public function ban($id)
     {
         $customer = User::where('role', 'client')->findOrFail($id);
         $customer->update(['is_banned' => true, 'banned_at' => now()]);
 
-        // Trigger notification and email to administrators
+
         \App\Models\Notification::sendToAdmins(
             'customer',
             'Customer Banned',
@@ -76,7 +63,7 @@ class CustomerController extends Controller
             "/customers/{$id}"
         );
 
-        // Notify the customer directly of their account suspension
+
         \App\Models\Notification::sendToUser(
             $id,
             'customer',
@@ -91,11 +78,7 @@ class CustomerController extends Controller
         ]);
     }
 
-    /**
-     * Unban a customer account.
-     *
-     * PUT /api/admin/customers/{id}/unban
-     */
+
     public function unban($id)
     {
         $customer = User::where('role', 'client')->findOrFail($id);
@@ -107,11 +90,7 @@ class CustomerController extends Controller
         ]);
     }
 
-    /**
-     * Delete a customer account.
-     *
-     * DELETE /api/admin/customers/{id}
-     */
+
     public function destroy($id)
     {
         $customer = User::where('role', 'client')->findOrFail($id);

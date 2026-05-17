@@ -12,10 +12,7 @@ class ArtistProfileController extends Controller
 {
     use HandlesCloudinaryUploads;
 
-    /**
-     * Display the authenticated artist's profile.
-     * Includes media, and a full rating summary (average, total, distribution, recent reviews).
-     */
+
     public function show(Request $request)
     {
         $user    = $request->user();
@@ -25,7 +22,7 @@ class ArtistProfileController extends Controller
             return response()->json(['message' => 'Profile not found'], 404);
         }
 
-        // ── Rating summary ─────────────────────────────────────────────────────
+
         $reviewsQuery = $profile->reviews()->approved();
 
         $totalReviews = (clone $reviewsQuery)->count();
@@ -68,9 +65,7 @@ class ArtistProfileController extends Controller
         ]);
     }
 
-    /**
-     * Update the artist's profile sections.
-     */
+
     public function update(Request $request)
     {
         $user = $request->user();
@@ -107,9 +102,7 @@ class ArtistProfileController extends Controller
         ]);
     }
 
-    /**
-     * Update Profile Avatar or Cover Photo.
-     */
+
     public function updateMedia(Request $request)
     {
         $request->validate([
@@ -138,9 +131,7 @@ class ArtistProfileController extends Controller
         }
     }
 
-    /**
-     * Add new Gallery image or Media Link.
-     */
+
     public function addMedia(Request $request)
     {
         $request->validate([
@@ -183,9 +174,7 @@ class ArtistProfileController extends Controller
         }
     }
 
-    /**
-     * Delete a specific media item.
-     */
+
     public function deleteMedia($id, Request $request)
     {
         $media = $request->user()->artistMedia()->findOrFail($id);
@@ -201,9 +190,7 @@ class ArtistProfileController extends Controller
         return response()->json(['message' => 'Media deleted successfully']);
     }
 
-    /**
-     * Bulk Sync External Media Links (Audio/Video).
-     */
+
     public function syncExternalLinks(Request $request)
     {
         $request->validate([

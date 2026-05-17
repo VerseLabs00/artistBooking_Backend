@@ -9,11 +9,7 @@ use Illuminate\Http\Request;
 
 class ArtistDiscoveryController extends Controller
 {
-    /**
-     * Return a distinct list of all active artist categories.
-     *
-     * GET /api/discovery/categories
-     */
+
     public function categories()
     {
         $categories = ArtistProfile::query()
@@ -29,12 +25,7 @@ class ArtistDiscoveryController extends Controller
         ]);
     }
 
-    /**
-     * Return a paginated list of onboarded artists.
-     * Supports optional ?category= filter and ?search= text search.
-     *
-     * GET /api/discovery/artists
-     */
+
     public function artists(Request $request)
     {
         $request->validate([
@@ -78,11 +69,7 @@ class ArtistDiscoveryController extends Controller
         ]);
     }
 
-    /**
-     * Return paginated artists filtered by a location string.
-     *
-     * GET /api/discovery/near-you?location=Colombo
-     */
+
     public function nearYou(Request $request)
     {
         $request->validate([
@@ -115,16 +102,11 @@ class ArtistDiscoveryController extends Controller
         ]);
     }
 
-    /**
-     * Return the full public profile of a single artist by their profile UUID.
-     * Includes all bio fields, social links, gallery media, and rating summary.
-     *
-     * GET /api/discovery/artists/{id}
-     */
+
     public function show(string $id)
     {
         $artist = ArtistProfile::with([
-                // Only load approved media visible to customers
+
                 'user.artistMedia' => fn ($q) => $q->where('purpose', 'talent_media'),
             ])
             ->where('is_onboarded', true)
@@ -134,19 +116,19 @@ class ArtistDiscoveryController extends Controller
             ->where('purpose', 'performance')
             ->get(['id', 'media_type', 'url', 'is_external_link']);
 
-        // ── Rating summary ─────────────────────────────────────────────────────
+
         $reviewsQuery = $artist->reviews()->approved();
 
         $totalReviews = (clone $reviewsQuery)->count();
         $avgRating    = (clone $reviewsQuery)->avg('rating');
 
-        // Star distribution (1–5 breakdown)
+
         $distribution = (clone $reviewsQuery)
             ->selectRaw('rating, COUNT(*) as count')
             ->groupBy('rating')
             ->pluck('count', 'rating');
 
-        // Embed last 3 reviews in the profile response
+
         $recentReviews = (clone $reviewsQuery)
             ->with('customer:id,name')
             ->orderByDesc('created_at')
@@ -210,11 +192,7 @@ class ArtistDiscoveryController extends Controller
         ]);
     }
 
-    /**
-     * List approved reviews for an artist (paginated, newest first).
-     *
-     * GET /api/discovery/artists/{id}/reviews
-     */
+
     public function reviews(string $id, Request $request)
     {
 
@@ -266,15 +244,10 @@ class ArtistDiscoveryController extends Controller
         ]);
     }
 
-    /**
-     * Submit a review for an artist.
-     * Works for both authenticated customers (Bearer token) and guests.
-     *
-     * POST /api/discovery/artists/{id}/reviews
-     */
+
     public function submitReview(string $id, Request $request)
     {
-        // Ensure artist exists and is onboarded
+
         $artist = ArtistProfile::where('is_onboarded', true)->findOrFail($id);
 
         $request->validate([
@@ -333,11 +306,9 @@ class ArtistDiscoveryController extends Controller
         ], 201);
     }
 
-    // ── Private helpers ────────────────────────────────────────────────────────
 
-    /**
-     * Normalise an ArtistProfile into a clean card-level response shape.
-     */
+
+
     private function formatArtist(ArtistProfile $artist): array
     {
         return [

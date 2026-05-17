@@ -14,9 +14,7 @@ class OnboardingController extends Controller
 {
     use HandlesCloudinaryUploads;
 
-    /**
-     * Step 1: Store Basic Information
-     */
+
     public function storeBasicInfo(Request $request)
     {
         $request->validate([
@@ -40,9 +38,7 @@ class OnboardingController extends Controller
         ]);
     }
 
-    /**
-     * Step 2: Upload Verification Documents
-     */
+
     public function uploadVerification(Request $request)
     {
         $request->validate([
@@ -67,7 +63,7 @@ class OnboardingController extends Controller
 
                 $user->artistProfile()->update(['verification_status' => 'pending']);
 
-                // Trigger notification and email to administrators
+
                 $profile = $user->artistProfile()->first();
                 $artistName = $profile ? ($profile->stage_name ?: $profile->full_name) : 'An artist';
                 \App\Models\Notification::sendToAdmins(
@@ -85,13 +81,11 @@ class OnboardingController extends Controller
         }
     }
 
-    /**
-     * Step 3: Store Talent Showcase
-     */
+
     public function storeTalent(Request $request)
     {
         $request->validate([
-            'media_file' => 'nullable|file|mimes:mp4,mov,avi,jpg,jpeg,png|max:51200', // 50MB max
+            'media_file' => 'nullable|file|mimes:mp4,mov,avi,jpg,jpeg,png|max:51200',
             'external_link' => 'nullable|url',
         ]);
 
@@ -128,9 +122,7 @@ class OnboardingController extends Controller
         }
     }
 
-    /**
-     * Helper: Upload File to Cloudinary
-     */
+
     private function uploadToCloudinary($file, $userId, $purpose, $type)
     {
         $resourceType = ($type === 'video') ? 'video' : (($type === 'document' && $file->getClientOriginalExtension() === 'pdf') ? 'raw' : 'image');
