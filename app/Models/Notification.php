@@ -25,25 +25,19 @@ class Notification extends Model
         'time',
     ];
 
-    /**
-     * Get relative time for humans (e.g. "2 min ago", "1 hour ago").
-     */
+
     public function getTimeAttribute()
     {
         return $this->created_at ? $this->created_at->diffForHumans() : null;
     }
 
-    /**
-     * Relationship to the recipient user.
-     */
+
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    /**
-     * Send a notification to a specific user and send them an email.
-     */
+
     public static function sendToUser($userId, string $type, string $title, string $message, ?string $link = null)
     {
         $notification = self::create([
@@ -55,7 +49,7 @@ class Notification extends Model
             'link' => $link,
         ]);
 
-        // Load the user to dispatch the email
+
         $user = $notification->user;
         if ($user && $user->email) {
             try {
@@ -68,9 +62,7 @@ class Notification extends Model
         return $notification;
     }
 
-    /**
-     * Broadcast a notification and styled email to all system administrators.
-     */
+
     public static function sendToAdmins(string $type, string $title, string $message, ?string $link = null)
     {
         $admins = User::where('role', 'admin')->get();

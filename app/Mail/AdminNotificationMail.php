@@ -15,17 +15,13 @@ class AdminNotificationMail extends Mailable
 
     public Notification $notification;
 
-    /**
-     * Create a new message instance.
-     */
+
     public function __construct(Notification $notification)
     {
         $this->notification = $notification;
     }
 
-    /**
-     * Get the message envelope.
-     */
+
     public function envelope(): Envelope
     {
         return new Envelope(
@@ -33,9 +29,7 @@ class AdminNotificationMail extends Mailable
         );
     }
 
-    /**
-     * Get the message content definition.
-     */
+
     public function content(): Content
     {
         return new Content(
@@ -43,9 +37,7 @@ class AdminNotificationMail extends Mailable
         );
     }
 
-    /**
-     * Get the attachments for the message.
-     */
+
     public function attachments(): array
     {
         return [];

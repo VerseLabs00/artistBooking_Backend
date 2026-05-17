@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
 
 class BookingController extends Controller
 {
-    // ── PayHere configuration ──────────────────────────────────────────────────
+
 
     private function payhereConfig(): array
     {
@@ -25,24 +25,16 @@ class BookingController extends Controller
         ];
     }
 
-    /**
-     * Generate PayHere payment hash.
-     * Formula: strtoupper(MD5(merchant_id + order_id + amount + currency + strtoupper(MD5(merchant_secret))))
-     */
+
     private function generateHash(string $merchantId, string $orderId, string $amount, string $currency, string $merchantSecret): string
     {
         $hashedSecret = strtoupper(md5($merchantSecret));
         return strtoupper(md5($merchantId . $orderId . $amount . $currency . $hashedSecret));
     }
 
-    // ── Initiate Booking ───────────────────────────────────────────────────────
 
-    /**
-     * Create a booking and return PayHere payment data.
-     * Customer takes this data and submits the PayHere checkout form on the frontend.
-     *
-     * POST /api/bookings/initiate
-     */
+
+
     public function initiate(Request $request)
     {
         $validated = $request->validate([
@@ -61,14 +53,11 @@ class BookingController extends Controller
         $artist = ArtistProfile::where('is_onboarded', true)
                                ->findOrFail($validated['artist_profile_id']);
 
-        // Use artist's starting_price as agreed price
         $agreedPrice  = (float) $artist->starting_price;
-        $advanceAmount = round($agreedPrice * 0.30, 2);  // 30% deposit
+        $advanceAmount = round($agreedPrice * 0.30, 2);
 
-        // Unique order ID for PayHere
         $orderId = 'BK-' . strtoupper(Str::random(10));
 
-        // Create booking in pending_payment state
         $booking = Booking::create([
             'customer_id'          => $user->id,
             'artist_profile_id'    => $artist->id,
@@ -133,14 +122,9 @@ class BookingController extends Controller
         ], 201);
     }
 
-    // ── PayHere Webhook ────────────────────────────────────────────────────────
 
-    /**
-     * PayHere sends a POST notification to this endpoint after payment.
-     * This route is PUBLIC — must be excluded from CSRF and auth middleware.
-     *
-     * POST /api/bookings/notify
-     */
+
+
     public function notify(Request $request)
     {
         $ph = $this->payhereConfig();
@@ -152,15 +136,12 @@ class BookingController extends Controller
         $md5sig        = $request->input('md5sig');
         $paymentId     = $request->input('payment_id');
 
-        // Find the booking
         $booking = Booking::where('payhere_order_id', $orderId)->first();
 
         if (!$booking) {
             return response()->json(['message' => 'Booking not found'], 404);
         }
 
-        // Verify PayHere signature
-        // Formula: strtoupper(MD5(merchant_id + order_id + payhere_amount + payhere_currency + status_code + strtoupper(MD5(merchant_secret))))
         $localMd5sig = strtoupper(md5(
             $ph['merchant_id'] .
             $orderId .
@@ -175,21 +156,21 @@ class BookingController extends Controller
             return response()->json(['message' => 'Invalid signature'], 400);
         }
 
-        // Store raw notify for debugging
+
         $booking->update([
             'payhere_payment_id'  => $paymentId,
             'payhere_status_code' => $statusCode,
             'payhere_raw_notify'  => json_encode($request->all()),
         ]);
 
-        // PayHere status codes: 2 = success, 0 = pending, -1 = cancelled, -2 = failed, -3 = chargedback
+
         if ($statusCode == 2) {
             $booking->update([
                 'booking_status' => 'confirmed',
                 'payment_status' => 'paid',
             ]);
 
-            // Trigger notification and email to administrators
+
             $customerName = $booking->customer_name ?: ($booking->customer ? $booking->customer->name : 'Customer');
             $artistProfile = $booking->artistProfile;
             $artistName = $artistProfile ? ($artistProfile->stage_name ?: $artistProfile->full_name) : 'Artist';
@@ -205,18 +186,14 @@ class BookingController extends Controller
                 'payment_status' => 'failed',
             ]);
         }
-        // status 0 = pending — do nothing, wait for final status
+
 
         return response()->json(['message' => 'Notification received']);
     }
 
-    // ── Customer Booking List ──────────────────────────────────────────────────
 
-    /**
-     * List the authenticated customer's bookings.
-     *
-     * GET /api/bookings
-     */
+
+
     public function index(Request $request)
     {
         $bookings = Booking::where('customer_id', $request->user()->id)
@@ -234,14 +211,9 @@ class BookingController extends Controller
         ]);
     }
 
-    // ── Single Booking Detail ──────────────────────────────────────────────────
 
-    /**
-     * Get a single booking's full details.
-     * If booking is confirmed, also return the artist's bank details for balance payment.
-     *
-     * GET /api/bookings/{id}
-     */
+
+
     public function show(string $id, Request $request)
     {
         $booking = Booking::where('customer_id', $request->user()->id)
@@ -250,7 +222,7 @@ class BookingController extends Controller
 
         $data = $this->formatBooking($booking, detailed: true);
 
-        // Expose bank details only for confirmed bookings (balance payment info)
+
         if ($booking->booking_status === 'confirmed') {
             $bank = ArtistBankDetail::where('artist_profile_id', $booking->artist_profile_id)
                 ->first();
@@ -271,13 +243,9 @@ class BookingController extends Controller
         return response()->json(['booking' => $data]);
     }
 
-    // ── Cancel Booking ─────────────────────────────────────────────────────────
 
-    /**
-     * Cancel a booking (only if still pending_payment).
-     *
-     * POST /api/bookings/{id}/cancel
-     */
+
+
     public function cancel(string $id, Request $request)
     {
         $booking = Booking::where('customer_id', $request->user()->id)
@@ -291,7 +259,7 @@ class BookingController extends Controller
 
         $booking->update(['booking_status' => 'cancelled']);
 
-        // Trigger notification and email to administrators
+
         $customerName = $booking->customer_name ?: ($booking->customer ? $booking->customer->name : 'Customer');
         \App\Models\Notification::sendToAdmins(
             'booking',
@@ -303,7 +271,7 @@ class BookingController extends Controller
         return response()->json(['message' => 'Booking cancelled successfully.']);
     }
 
-    // ── Private Helpers ────────────────────────────────────────────────────────
+
 
     private function formatBooking(Booking $b, bool $detailed = false): array
     {

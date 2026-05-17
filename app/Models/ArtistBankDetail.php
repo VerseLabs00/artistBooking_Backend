@@ -24,25 +24,19 @@ class ArtistBankDetail extends Model
         'is_verified' => 'boolean',
     ];
 
-    /**
-     * Hide account_number by default.
-     * Reveal only explicitly when needed (e.g., during booking payment step).
-     */
+
     protected $hidden = ['account_number'];
 
-    // ── Relationships ──────────────────────────────────────────────────────────
+
 
     public function artistProfile()
     {
         return $this->belongsTo(ArtistProfile::class);
     }
 
-    // ── Accessors ──────────────────────────────────────────────────────────────
 
-    /**
-     * Masked account number for safe display: shows last 4 digits only.
-     * e.g. "****6789"
-     */
+
+
     public function getMaskedAccountNumberAttribute(): string
     {
         return '****' . substr($this->getRawOriginal('account_number'), -4);

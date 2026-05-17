@@ -11,11 +11,7 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    /**
-     * Get platform stats for the admin dashboard.
-     * 
-     * GET /api/admin/dashboard/stats
-     */
+
     public function stats()
     {
         $totalArtists = ArtistProfile::count();

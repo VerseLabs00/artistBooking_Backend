@@ -6,7 +6,7 @@ use App\Http\Controllers\Api\ArtistBookingRequestController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->group(function () {
-    // ── Profile ────────────────────────────────────────────────────────────────
+
     Route::get('/profile', [ArtistProfileController::class, 'show']);
     Route::put('/profile', [ArtistProfileController::class, 'update']);
     Route::post('/profile/media', [ArtistProfileController::class, 'updateMedia']);
@@ -14,16 +14,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/profile/gallery/{id}', [ArtistProfileController::class, 'deleteMedia']);
     Route::post('/profile/sync-links', [ArtistProfileController::class, 'syncExternalLinks']);
 
-    // ── Bank Details ───────────────────────────────────────────────────────────
+
     Route::get('/profile/bank', [ArtistBankController::class, 'show']);
 
-    // Artist: save or update bank details
+
     Route::post('/profile/bank', [ArtistBankController::class, 'upsert']);
 
-    // Booking system: fetch full bank details for a confirmed booking payment
+
     Route::get('/profile/bank/booking-view/{artistProfileId}', [ArtistBankController::class, 'bookingView']);
 
-    // ── Artist Incoming Bookings ────────────────────────────────────────────────
+
     Route::get('/bookings', [ArtistBookingRequestController::class, 'index']);
     Route::get('/bookings/{id}', [ArtistBookingRequestController::class, 'show']);
     Route::put('/bookings/{id}/status', [ArtistBookingRequestController::class, 'updateStatus']);

@@ -8,13 +8,7 @@ use Illuminate\Http\Request;
 
 class ArtistBankController extends Controller
 {
-    /**
-     * Get the authenticated artist's bank details.
-     * account_number is shown as masked (****6789) for display safety.
-     * Use ?reveal=1 to get the full account number (e.g., for the edit form).
-     *
-     * GET /api/profile/bank
-     */
+
     public function show(Request $request)
     {
         $profile = $request->user()->artistProfile;
@@ -29,7 +23,6 @@ class ArtistBankController extends Controller
             return response()->json(['bank_details' => null]);
         }
 
-        // Build response — always include masked number
         $data = [
             'id'                    => $bankDetails->id,
             'account_holder_name'   => $bankDetails->account_holder_name,
@@ -41,7 +34,6 @@ class ArtistBankController extends Controller
             'is_verified'           => $bankDetails->is_verified,
         ];
 
-        // Optionally reveal full number only when artist explicitly requests it
         if ($request->boolean('reveal')) {
             $data['account_number'] = $bankDetails->getRawOriginal('account_number');
         }
@@ -49,12 +41,7 @@ class ArtistBankController extends Controller
         return response()->json(['bank_details' => $data]);
     }
 
-    /**
-     * Save or update the authenticated artist's bank details.
-     * Creates a new record if none exists; updates existing record otherwise.
-     *
-     * POST /api/profile/bank
-     */
+
     public function upsert(Request $request)
     {
         $profile = $request->user()->artistProfile;
@@ -92,17 +79,11 @@ class ArtistBankController extends Controller
         ]);
     }
 
-    /**
-     * Return bank details for a confirmed booking (used by booking system).
-     * Exposes the FULL account number — only accessible with a valid auth token.
-     * The booking controller should call this internally or gate it to the booking owner.
-     *
-     * GET /api/profile/bank/booking-view/{artistProfileId}
-     */
+
     public function bookingView(string $artistProfileId)
     {
         $bankDetails = ArtistBankDetail::where('artist_profile_id', $artistProfileId)
-            ->where('is_verified', true)           // only show verified bank details
+            ->where('is_verified', true)
             ->firstOrFail();
 
         return response()->json([

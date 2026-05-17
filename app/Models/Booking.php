@@ -38,7 +38,7 @@ class Booking extends Model
         'event_duration_hours'  => 'decimal:1',
     ];
 
-    // ── Relationships ──────────────────────────────────────────────────────────
+
 
     public function customer()
     {
@@ -50,7 +50,7 @@ class Booking extends Model
         return $this->belongsTo(ArtistProfile::class);
     }
 
-    // ── Scopes ─────────────────────────────────────────────────────────────────
+
 
     public function scopeConfirmed($query)
     {

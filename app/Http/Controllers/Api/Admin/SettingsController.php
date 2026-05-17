@@ -17,11 +17,7 @@ class SettingsController extends Controller
         'notifications_enabled'  => ['type' => 'boolean', 'default' => true],
     ];
 
-    /**
-     * Get all platform settings.
-     *
-     * GET /api/admin/settings
-     */
+
     public function index()
     {
         $stored = Setting::all()->pluck('value', 'key');
@@ -37,11 +33,7 @@ class SettingsController extends Controller
         return response()->json($settings);
     }
 
-    /**
-     * Update one or more platform settings.
-     *
-     * PUT /api/admin/settings
-     */
+
     public function update(Request $request)
     {
         $request->validate([
@@ -59,7 +51,7 @@ class SettingsController extends Controller
             }
         }
 
-        // Trigger notification and email to administrators if commission rate changes
+
         if ($request->has('commission_rate')) {
             $rate = $request->input('commission_rate');
             \App\Models\Notification::sendToAdmins(
