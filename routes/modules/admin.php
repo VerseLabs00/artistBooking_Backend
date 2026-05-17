@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\Admin\ArtistController;
 use App\Http\Controllers\Api\Admin\BookingController;
 use App\Http\Controllers\Api\Admin\CustomerController;
 use App\Http\Controllers\Api\Admin\DashboardController;
+use App\Http\Controllers\Api\Admin\SettingsController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -16,7 +17,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
-    
+
     // ── Dashboard ──────────────────────────────────────────────────────────────
     Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
 
@@ -35,4 +36,11 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     // ── Customer Management ────────────────────────────────────────────────────
     Route::get('/customers', [CustomerController::class, 'index']);
     Route::get('/customers/{id}', [CustomerController::class, 'show']);
+    Route::put('/customers/{id}/ban', [CustomerController::class, 'ban']);
+    Route::put('/customers/{id}/unban', [CustomerController::class, 'unban']);
+    Route::delete('/customers/{id}', [CustomerController::class, 'destroy']);
+
+    // ── Platform Settings ──────────────────────────────────────────────────────
+    Route::get('/settings', [SettingsController::class, 'index']);
+    Route::put('/settings', [SettingsController::class, 'update']);
 });
