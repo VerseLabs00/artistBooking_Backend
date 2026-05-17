@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\Admin\ArtistController;
 use App\Http\Controllers\Api\Admin\BookingController;
 use App\Http\Controllers\Api\Admin\CustomerController;
 use App\Http\Controllers\Api\Admin\DashboardController;
+use App\Http\Controllers\Api\Admin\NotificationController;
 use App\Http\Controllers\Api\Admin\SettingsController;
 use Illuminate\Support\Facades\Route;
 
@@ -14,12 +15,19 @@ use Illuminate\Support\Facades\Route;
 |
 | All routes are grouped under /api/admin and protected by auth and admin middleware.
 |
+|
 */
 
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
 
     // ── Dashboard ──────────────────────────────────────────────────────────────
     Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
+
+    // ── Notification Management ────────────────────────────────────────────────
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::put('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+    Route::put('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
+    Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
 
     // ── Artist Management ──────────────────────────────────────────────────────
     Route::get('/artists', [ArtistController::class, 'index']);

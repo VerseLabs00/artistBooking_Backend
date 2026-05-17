@@ -79,6 +79,26 @@ class ArtistController extends Controller
         $artist = ArtistProfile::findOrFail($id);
         $artist->update(['is_onboarded' => !$artist->is_onboarded]);
 
+        // Trigger notification and email to administrators
+        $artistName = $artist->stage_name ?: $artist->full_name;
+        \App\Models\Notification::sendToAdmins(
+            'artist',
+            $artist->is_onboarded ? 'Artist Re-activated' : 'Artist Suspended',
+            "{$artistName} account was " . ($artist->is_onboarded ? 're-activated' : 'suspended') . " due to disputes.",
+            "/artists/{$id}"
+        );
+
+        // Notify the artist directly of their profile status change
+        if ($artist->user_id) {
+            \App\Models\Notification::sendToUser(
+                $artist->user_id,
+                'artist',
+                $artist->is_onboarded ? 'Account Re-activated' : 'Account Suspended',
+                "Your artist profile has been " . ($artist->is_onboarded ? 're-activated' : 'suspended') . " by the platform administration.",
+                '/profile'
+            );
+        }
+
         return response()->json([
             'message' => "Artist visibility toggled.",
             'is_onboarded' => $artist->is_onboarded

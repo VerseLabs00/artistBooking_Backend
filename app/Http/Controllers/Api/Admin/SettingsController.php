@@ -59,6 +59,17 @@ class SettingsController extends Controller
             }
         }
 
+        // Trigger notification and email to administrators if commission rate changes
+        if ($request->has('commission_rate')) {
+            $rate = $request->input('commission_rate');
+            \App\Models\Notification::sendToAdmins(
+                'system',
+                'Commission Rate Updated',
+                "Platform commission rate changed to {$rate}%.",
+                '/settings'
+            );
+        }
+
         return $this->index();
     }
 }

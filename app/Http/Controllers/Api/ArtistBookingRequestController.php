@@ -89,6 +89,18 @@ class ArtistBookingRequestController extends Controller
 
         $booking->update(['booking_status' => $validated['status']]);
 
+        // Trigger notification and email to the Customer/Client
+        $artistName = $user->artistProfile ? ($user->artistProfile->stage_name ?: $user->artistProfile->full_name) : 'The artist';
+        \App\Models\Notification::sendToUser(
+            $booking->customer_id,
+            'booking',
+            $validated['status'] === 'rejected' ? 'Booking Rejected' : 'Booking Completed',
+            $validated['status'] === 'rejected' 
+                ? "Your booking #{$booking->payhere_order_id} was rejected by {$artistName}."
+                : "Your booking #{$booking->payhere_order_id} with {$artistName} has been completed.",
+            "/bookings"
+        );
+
         return response()->json([
             'message' => 'Booking status updated successfully',
             'data'    => $this->formatForArtist($booking, true)

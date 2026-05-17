@@ -60,6 +60,26 @@ class BookingController extends Controller
         $booking = Booking::findOrFail($id);
         $booking->update(['booking_status' => $request->status]);
 
+        // Notify the customer/client
+        \App\Models\Notification::sendToUser(
+            $booking->customer_id,
+            'booking',
+            'Booking Status Updated',
+            "Your booking #{$booking->payhere_order_id} status has been updated to " . ucfirst($request->status) . " by the platform.",
+            "/bookings"
+        );
+
+        // Notify the artist
+        if ($booking->artistProfile && $booking->artistProfile->user_id) {
+            \App\Models\Notification::sendToUser(
+                $booking->artistProfile->user_id,
+                'booking',
+                'Booking Status Updated',
+                "Your booking #{$booking->payhere_order_id} with client {$booking->customer_name} has been updated to " . ucfirst($request->status) . " by the platform.",
+                "/bookings"
+            );
+        }
+
         return response()->json([
             'message' => 'Booking status updated by admin.',
             'booking' => $booking

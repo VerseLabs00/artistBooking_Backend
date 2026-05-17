@@ -68,6 +68,23 @@ class CustomerController extends Controller
         $customer = User::where('role', 'client')->findOrFail($id);
         $customer->update(['is_banned' => true, 'banned_at' => now()]);
 
+        // Trigger notification and email to administrators
+        \App\Models\Notification::sendToAdmins(
+            'customer',
+            'Customer Banned',
+            "{$customer->name} was banned for abusive behaviour.",
+            "/customers/{$id}"
+        );
+
+        // Notify the customer directly of their account suspension
+        \App\Models\Notification::sendToUser(
+            $id,
+            'customer',
+            'Account Suspended',
+            'Your account has been suspended by the administrator due to platform policy violations.',
+            '/'
+        );
+
         return response()->json([
             'message'  => 'Customer has been banned.',
             'customer' => $customer,
