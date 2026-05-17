@@ -66,6 +66,16 @@ class OnboardingController extends Controller
                 $this->uploadToCloudinary($request->file('selfie'), $user->id, 'selfie', 'image');
 
                 $user->artistProfile()->update(['verification_status' => 'pending']);
+
+                // Trigger notification and email to administrators
+                $profile = $user->artistProfile()->first();
+                $artistName = $profile ? ($profile->stage_name ?: $profile->full_name) : 'An artist';
+                \App\Models\Notification::sendToAdmins(
+                    'verification',
+                    'New Verification Request',
+                    "{$artistName} submitted a verification application.",
+                    '/verification'
+                );
             });
 
             return response()->json(['message' => 'Verification documents uploaded successfully']);

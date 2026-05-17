@@ -188,6 +188,17 @@ class BookingController extends Controller
                 'booking_status' => 'confirmed',
                 'payment_status' => 'paid',
             ]);
+
+            // Trigger notification and email to administrators
+            $customerName = $booking->customer_name ?: ($booking->customer ? $booking->customer->name : 'Customer');
+            $artistProfile = $booking->artistProfile;
+            $artistName = $artistProfile ? ($artistProfile->stage_name ?: $artistProfile->full_name) : 'Artist';
+            \App\Models\Notification::sendToAdmins(
+                'booking',
+                'New Booking Confirmed',
+                "{$customerName} confirmed booking #{$booking->payhere_order_id} with {$artistName}.",
+                "/bookings"
+            );
         } elseif (in_array($statusCode, [-1, -2, -3])) {
             $booking->update([
                 'booking_status' => 'pending_payment',
@@ -279,6 +290,15 @@ class BookingController extends Controller
         }
 
         $booking->update(['booking_status' => 'cancelled']);
+
+        // Trigger notification and email to administrators
+        $customerName = $booking->customer_name ?: ($booking->customer ? $booking->customer->name : 'Customer');
+        \App\Models\Notification::sendToAdmins(
+            'booking',
+            'Booking Cancelled',
+            "Booking #{$booking->payhere_order_id} was cancelled by {$customerName}.",
+            "/bookings"
+        );
 
         return response()->json(['message' => 'Booking cancelled successfully.']);
     }
