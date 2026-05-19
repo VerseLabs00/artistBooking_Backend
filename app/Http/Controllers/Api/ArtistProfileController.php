@@ -194,21 +194,25 @@ class ArtistProfileController extends Controller
     public function syncExternalLinks(Request $request)
     {
         $request->validate([
-            'links' => 'required|array',
-            'links.*' => 'nullable|url',
+            'links'         => 'required|array',
+            'links.*.url'   => 'nullable|url',
+            'links.*.title' => 'nullable|string|max:255',
         ]);
 
         $user = $request->user();
 
         $user->artistMedia()->where('is_external_link', true)->where('purpose', 'talent_media')->delete();
 
-        foreach ($request->links as $link) {
-            if ($link) {
+        foreach ($request->links as $item) {
+            $url = is_array($item) ? ($item['url'] ?? null) : $item;
+            $title = is_array($item) ? ($item['title'] ?? null) : null;
+            if ($url) {
                 ArtistMedia::create([
-                    'user_id' => $user->id,
-                    'media_type' => 'video',
-                    'purpose' => 'talent_media',
-                    'url' => $link,
+                    'user_id'          => $user->id,
+                    'media_type'       => 'video',
+                    'purpose'          => 'talent_media',
+                    'url'              => $url,
+                    'title'            => $title,
                     'is_external_link' => true,
                 ]);
             }

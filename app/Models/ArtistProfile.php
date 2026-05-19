@@ -24,6 +24,7 @@ class ArtistProfile extends Model
     use HasUuids;
 
     protected $fillable = [
+        'user_id',
         'full_name',
         'stage_name',
         'location',
