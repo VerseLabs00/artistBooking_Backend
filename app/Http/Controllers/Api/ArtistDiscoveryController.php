@@ -40,7 +40,9 @@ class ArtistDiscoveryController extends Controller
                 'id', 'user_id', 'stage_name', 'full_name',
                 'category', 'location', 'avatar_url', 'cover_url',
                 'starting_price', 'max_price', 'tags', 'short_bio',
-            ]);
+            ])
+            ->withAvg(['reviews' => fn ($q) => $q->approved()], 'rating')
+            ->withCount(['reviews' => fn ($q) => $q->approved()]);
 
         if ($request->filled('category')) {
             $query->where('category', $request->category);
@@ -88,6 +90,8 @@ class ArtistDiscoveryController extends Controller
                 'category', 'location', 'avatar_url', 'cover_url',
                 'starting_price', 'max_price', 'tags', 'short_bio',
             ])
+            ->withAvg(['reviews' => fn ($q) => $q->approved()], 'rating')
+            ->withCount(['reviews' => fn ($q) => $q->approved()])
             ->paginate($perPage);
 
         return response()->json([
@@ -323,6 +327,10 @@ class ArtistDiscoveryController extends Controller
             'max_price'      => $artist->max_price,
             'tags'           => $artist->tags ?? [],
             'short_bio'      => $artist->short_bio,
+            'rating'         => [
+                'average' => $artist->reviews_avg_rating ? round((float) $artist->reviews_avg_rating, 1) : null,
+                'total'   => (int) ($artist->reviews_count ?? 0),
+            ],
         ];
     }
 }
