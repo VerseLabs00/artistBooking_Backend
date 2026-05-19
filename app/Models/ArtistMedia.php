@@ -14,6 +14,7 @@ class ArtistMedia extends Model
         'media_type',
         'purpose',
         'url',
+        'title',
         'cloudinary_public_id',
         'is_external_link',
     ];
