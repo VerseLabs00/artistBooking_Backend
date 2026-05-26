@@ -109,7 +109,7 @@ class ArtistBookingRequestController extends Controller
         }
 
         $validated = $request->validate([
-            'status' => 'required|in:rejected,completed'
+            'status' => 'required|in:rejected,completed,confirmed'
         ]);
 
         $booking = Booking::where('artist_profile_id', $user->artistProfile->id)
@@ -123,13 +123,26 @@ class ArtistBookingRequestController extends Controller
         $booking->update(['booking_status' => $validated['status']]);
 
         $artistName = $user->artistProfile ? ($user->artistProfile->stage_name ?: $user->artistProfile->full_name) : 'The artist';
+        
+        $notificationTitle = 'Booking Status Updated';
+        $notificationBody = "Your booking #{$booking->payhere_order_id} with {$artistName} has been updated to {$validated['status']}.";
+
+        if ($validated['status'] === 'rejected') {
+            $notificationTitle = 'Booking Rejected';
+            $notificationBody = "Your booking #{$booking->payhere_order_id} was rejected by {$artistName}.";
+        } elseif ($validated['status'] === 'confirmed') {
+            $notificationTitle = 'Booking Accepted';
+            $notificationBody = "Your booking #{$booking->payhere_order_id} was accepted by {$artistName}.";
+        } elseif ($validated['status'] === 'completed') {
+            $notificationTitle = 'Booking Completed';
+            $notificationBody = "Your booking #{$booking->payhere_order_id} with {$artistName} has been completed.";
+        }
+
         \App\Models\Notification::sendToUser(
             $booking->customer_id,
             'booking',
-            $validated['status'] === 'rejected' ? 'Booking Rejected' : 'Booking Completed',
-            $validated['status'] === 'rejected'
-                ? "Your booking #{$booking->payhere_order_id} was rejected by {$artistName}."
-                : "Your booking #{$booking->payhere_order_id} with {$artistName} has been completed.",
+            $notificationTitle,
+            $notificationBody,
             "/bookings"
         );
 
