@@ -24,6 +24,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/profile/bank/booking-view/{artistProfileId}', [ArtistBankController::class, 'bookingView']);
 
 
+    Route::get('/bookings/dashboard', [ArtistBookingRequestController::class, 'dashboard']);
     Route::get('/bookings', [ArtistBookingRequestController::class, 'index']);
     Route::get('/bookings/{id}', [ArtistBookingRequestController::class, 'show']);
     Route::put('/bookings/{id}/status', [ArtistBookingRequestController::class, 'updateStatus']);

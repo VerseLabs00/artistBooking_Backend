@@ -9,6 +9,55 @@ use Illuminate\Http\Request;
 class ArtistBookingRequestController extends Controller
 {
 
+    public function dashboard(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user->artistProfile) {
+            return response()->json(['message' => 'Artist profile not found'], 404);
+        }
+
+        $artistProfileId = $user->artistProfile->id;
+
+        $stats = Booking::where('artist_profile_id', $artistProfileId)
+            ->selectRaw("
+                COUNT(*) as total,
+                SUM(CASE WHEN booking_status = 'confirmed' THEN 1 ELSE 0 END) as confirmed,
+                SUM(CASE WHEN booking_status = 'pending_payment' THEN 1 ELSE 0 END) as pending,
+                SUM(CASE WHEN booking_status = 'completed' THEN 1 ELSE 0 END) as completed,
+                SUM(CASE WHEN booking_status = 'rejected' THEN 1 ELSE 0 END) as rejected,
+                SUM(CASE WHEN booking_status = 'cancelled' THEN 1 ELSE 0 END) as cancelled,
+                SUM(CASE WHEN payment_status = 'paid' THEN advance_amount ELSE 0 END) as total_earned
+            ")
+            ->first();
+
+        $upcoming = Booking::where('artist_profile_id', $artistProfileId)
+            ->where('booking_status', 'confirmed')
+            ->where('event_date', '>=', now()->toDateString())
+            ->orderBy('event_date')
+            ->limit(5)
+            ->get();
+
+        $recent = Booking::where('artist_profile_id', $artistProfileId)
+            ->orderByDesc('created_at')
+            ->limit(5)
+            ->get();
+
+        return response()->json([
+            'stats' => [
+                'total'       => (int) $stats->total,
+                'confirmed'   => (int) $stats->confirmed,
+                'pending'     => (int) $stats->pending,
+                'completed'   => (int) $stats->completed,
+                'rejected'    => (int) $stats->rejected,
+                'cancelled'   => (int) $stats->cancelled,
+                'total_earned' => round((float) $stats->total_earned, 2),
+            ],
+            'upcoming_bookings' => $upcoming->map(fn($b) => $this->formatForArtist($b)),
+            'recent_bookings'   => $recent->map(fn($b) => $this->formatForArtist($b)),
+        ]);
+    }
+
     public function index(Request $request)
     {
         $user = $request->user();
