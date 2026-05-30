@@ -45,14 +45,16 @@ class ArtistController extends Controller
             'status' => 'required|in:approved,rejected',
         ]);
 
+        $status = $request->status === 'approved' ? 'verified' : 'rejected';
+
         $artist = ArtistProfile::findOrFail($id);
         $artist->update([
-            'verification_status' => $request->status,
-            'is_onboarded' => ($request->status === 'approved')
+            'verification_status' => $status,
+            'is_onboarded' => ($status === 'verified')
         ]);
 
         return response()->json([
-            'message' => "Artist profile has been " . $request->status,
+            'message' => "Artist profile has been " . ($status === 'verified' ? 'approved' : 'rejected'),
             'artist' => $artist
         ]);
     }
