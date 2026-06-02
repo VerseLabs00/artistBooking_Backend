@@ -40,6 +40,7 @@ class ArtistDiscoveryController extends Controller
                 'id', 'user_id', 'stage_name', 'full_name',
                 'category', 'location', 'avatar_url', 'cover_url',
                 'starting_price', 'max_price', 'tags', 'short_bio',
+                'verification_status',
             ])
             ->withAvg(['reviews' => fn ($q) => $q->approved()], 'rating')
             ->withCount(['reviews' => fn ($q) => $q->approved()]);
@@ -89,6 +90,7 @@ class ArtistDiscoveryController extends Controller
                 'id', 'user_id', 'stage_name', 'full_name',
                 'category', 'location', 'avatar_url', 'cover_url',
                 'starting_price', 'max_price', 'tags', 'short_bio',
+                'verification_status',
             ])
             ->withAvg(['reviews' => fn ($q) => $q->approved()], 'rating')
             ->withCount(['reviews' => fn ($q) => $q->approved()])
@@ -327,6 +329,7 @@ class ArtistDiscoveryController extends Controller
             'max_price'      => $artist->max_price,
             'tags'           => $artist->tags ?? [],
             'short_bio'      => $artist->short_bio,
+            'verification_status' => $artist->verification_status,
             'rating'         => [
                 'average' => $artist->reviews_avg_rating ? round((float) $artist->reviews_avg_rating, 1) : null,
                 'total'   => (int) ($artist->reviews_count ?? 0),

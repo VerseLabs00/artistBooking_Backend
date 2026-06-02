@@ -11,7 +11,7 @@ class ArtistController extends Controller
 
     public function index(Request $request)
     {
-        $query = ArtistProfile::with('user:id,name,email');
+        $query = ArtistProfile::with(['user:id,name,email', 'user.artistMedia']);
 
         if ($request->filled('status')) {
             $query->where('verification_status', $request->status);
@@ -45,14 +45,16 @@ class ArtistController extends Controller
             'status' => 'required|in:approved,rejected',
         ]);
 
+        $status = $request->status === 'approved' ? 'verified' : 'rejected';
+
         $artist = ArtistProfile::findOrFail($id);
         $artist->update([
-            'verification_status' => $request->status,
-            'is_onboarded' => ($request->status === 'approved')
+            'verification_status' => $status,
+            'is_onboarded' => ($status === 'verified')
         ]);
 
         return response()->json([
-            'message' => "Artist profile has been " . $request->status,
+            'message' => "Artist profile has been " . ($status === 'verified' ? 'approved' : 'rejected'),
             'artist' => $artist
         ]);
     }
@@ -93,8 +95,14 @@ class ArtistController extends Controller
     public function destroy($id)
     {
         $artist = ArtistProfile::findOrFail($id);
-        $artist->delete();
+        
+        // Delete the associated user which will cascade delete the profile and media
+        if ($artist->user) {
+            $artist->user->delete();
+        } else {
+            $artist->delete();
+        }
 
-        return response()->json(['message' => 'Artist profile deleted successfully.']);
+        return response()->json(['message' => 'Artist profile and associated user account deleted successfully.']);
     }
 }

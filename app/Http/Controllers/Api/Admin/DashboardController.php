@@ -15,7 +15,7 @@ class DashboardController extends Controller
     public function stats()
     {
         $totalArtists = ArtistProfile::count();
-        $verifiedArtists = ArtistProfile::where('verification_status', 'approved')->count();
+        $verifiedArtists = ArtistProfile::where('verification_status', 'verified')->count();
         $pendingVerifications = ArtistProfile::where('verification_status', 'pending')->count();
 
         $totalCustomers = User::where('role', 'client')->count();
