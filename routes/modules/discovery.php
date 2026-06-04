@@ -9,6 +9,9 @@ Route::prefix('discovery')->group(function () {
     Route::get('categories', [ArtistDiscoveryController::class, 'categories']);
 
 
+    Route::get('stats', [ArtistDiscoveryController::class, 'stats']);
+
+
     Route::get('artists', [ArtistDiscoveryController::class, 'artists']);
 
 
