@@ -32,6 +32,7 @@ class ArtistBookingRequestController extends Controller
             ->first();
 
         $upcoming = Booking::where('artist_profile_id', $artistProfileId)
+            ->with('customer:id,name,email,avatar_url')
             ->where('booking_status', 'confirmed')
             ->where('event_date', '>=', now()->toDateString())
             ->orderBy('event_date')
@@ -39,6 +40,7 @@ class ArtistBookingRequestController extends Controller
             ->get();
 
         $recent = Booking::where('artist_profile_id', $artistProfileId)
+            ->with('customer:id,name,email,avatar_url')
             ->orderByDesc('created_at')
             ->limit(5)
             ->get();
@@ -68,7 +70,7 @@ class ArtistBookingRequestController extends Controller
         }
 
         $bookings = Booking::where('artist_profile_id', $user->artistProfile->id)
-            ->with('customer:id,name,email')
+            ->with('customer:id,name,email,avatar_url')
             ->orderByDesc('event_date')
             ->paginate(10);
 
@@ -92,6 +94,7 @@ class ArtistBookingRequestController extends Controller
         }
 
         $booking = Booking::where('artist_profile_id', $user->artistProfile->id)
+            ->with('customer:id,name,email,avatar_url')
             ->findOrFail($id);
 
         return response()->json([
@@ -169,6 +172,7 @@ class ArtistBookingRequestController extends Controller
             'advance_amount'  => $b->advance_amount,
             'balance_due'     => (float) $b->agreed_price - (float) $b->advance_amount,
             'customer_name'   => $b->customer_name,
+            'customer_avatar' => $b->customer?->avatar_url,
             'created_at'      => $b->created_at->toDateTimeString(),
         ];
 

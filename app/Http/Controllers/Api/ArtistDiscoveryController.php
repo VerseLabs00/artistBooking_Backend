@@ -25,6 +25,21 @@ class ArtistDiscoveryController extends Controller
         ]);
     }
 
+    public function stats()
+    {
+        $totalArtists = ArtistProfile::where('is_onboarded', true)->count();
+        $sampleAvatars = ArtistProfile::where('is_onboarded', true)
+            ->whereNotNull('avatar_url')
+            ->where('avatar_url', '!=', '')
+            ->limit(5)
+            ->pluck('avatar_url');
+
+        return response()->json([
+            'total_artists' => $totalArtists,
+            'sample_avatars' => $sampleAvatars,
+        ]);
+    }
+
 
     public function artists(Request $request)
     {
