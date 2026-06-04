@@ -34,17 +34,18 @@ class ArtistProfileController extends Controller
             ->pluck('count', 'rating');
 
         $recentReviews = (clone $reviewsQuery)
-            ->with('customer:id,name')
+            ->with('customer:id,name,avatar_url')
             ->orderByDesc('created_at')
             ->limit(3)
             ->get()
             ->map(fn ($r) => [
-                'id'            => $r->id,
-                'rating'        => $r->rating,
-                'title'         => $r->title,
-                'body'          => $r->body,
-                'reviewer_name' => $r->reviewer_name ?? ($r->customer?->name ?? 'Anonymous'),
-                'created_at'    => $r->created_at->toDateString(),
+                'id'              => $r->id,
+                'rating'          => $r->rating,
+                'title'           => $r->title,
+                'body'            => $r->body,
+                'reviewer_name'   => $r->reviewer_name ?? ($r->customer?->name ?? 'Anonymous'),
+                'reviewer_avatar' => $r->customer?->avatar_url,
+                'created_at'      => $r->created_at->toDateString(),
             ]);
 
         return response()->json([
