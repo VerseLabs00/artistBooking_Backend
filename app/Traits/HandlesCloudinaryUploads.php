@@ -9,9 +9,9 @@ trait HandlesCloudinaryUploads
 
     protected function getCloudinaryInstance()
     {
-        $cloudinary = new Cloudinary(config('services.cloudinary.url'));
+        $cloudinary = new \Cloudinary\Cloudinary(config('services.cloudinary.url'));
 
-
+        // Fix for "SSL certificate problem" on local Windows environments
         if (app()->environment('local')) {
             $cloudinary->configuration->api->uploadPrefix = 'http://api.cloudinary.com';
             $cloudinary->configuration->api->secure = false;
