@@ -116,6 +116,7 @@ class ArtistBookingRequestController extends Controller
         ]);
 
         $booking = Booking::where('artist_profile_id', $user->artistProfile->id)
+            ->with('customer:id,name,email,avatar_url')
             ->findOrFail($id);
 
 
@@ -171,6 +172,7 @@ class ArtistBookingRequestController extends Controller
             'agreed_price'    => $b->agreed_price,
             'advance_amount'  => $b->advance_amount,
             'balance_due'     => (float) $b->agreed_price - (float) $b->advance_amount,
+            'customer'        => $b->customer,
             'customer_name'   => $b->customer_name,
             'customer_avatar' => $b->customer?->avatar_url,
             'created_at'      => $b->created_at->toDateTimeString(),
