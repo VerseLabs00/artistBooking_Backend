@@ -151,17 +151,18 @@ class ArtistDiscoveryController extends Controller
 
 
         $recentReviews = (clone $reviewsQuery)
-            ->with('customer:id,name')
+            ->with('customer:id,name,avatar_url')
             ->orderByDesc('created_at')
             ->limit(3)
             ->get()
             ->map(fn ($r) => [
-                'id'            => $r->id,
-                'rating'        => $r->rating,
-                'title'         => $r->title,
-                'body'          => $r->body,
-                'reviewer_name' => $r->reviewer_name ?? ($r->customer?->name ?? 'Anonymous'),
-                'created_at'    => $r->created_at->toDateString(),
+                'id'              => $r->id,
+                'rating'          => $r->rating,
+                'title'           => $r->title,
+                'body'            => $r->body,
+                'reviewer_name'   => $r->reviewer_name ?? ($r->customer?->name ?? 'Anonymous'),
+                'reviewer_avatar' => $r->customer?->avatar_url,
+                'created_at'      => $r->created_at->toDateString(),
             ]);
 
         return response()->json([
@@ -249,12 +250,13 @@ class ArtistDiscoveryController extends Controller
                 ],
             ],
             'data' => $reviews->map(fn ($r) => [
-                'id'            => $r->id,
-                'rating'        => $r->rating,
-                'title'         => $r->title,
-                'body'          => $r->body,
-                'reviewer_name' => $r->reviewer_name ?? ($r->customer?->name ?? 'Anonymous'),
-                'created_at'    => $r->created_at->toDateString(),
+                'id'              => $r->id,
+                'rating'          => $r->rating,
+                'title'           => $r->title,
+                'body'            => $r->body,
+                'reviewer_name'   => $r->reviewer_name ?? ($r->customer?->name ?? 'Anonymous'),
+                'reviewer_avatar' => $r->customer?->avatar_url,
+                'created_at'      => $r->created_at->toDateString(),
             ]),
             'meta' => [
                 'current_page' => $reviews->currentPage(),
@@ -314,15 +316,18 @@ class ArtistDiscoveryController extends Controller
             'status'            => 'approved',
         ]);
 
+        $review->load('customer');
+
         return response()->json([
             'message' => 'Review submitted successfully.',
             'review'  => [
-                'id'            => $review->id,
-                'rating'        => $review->rating,
-                'title'         => $review->title,
-                'body'          => $review->body,
-                'reviewer_name' => $review->reviewer_name ?? 'Anonymous',
-                'created_at'    => $review->created_at->toDateString(),
+                'id'              => $review->id,
+                'rating'          => $review->rating,
+                'title'           => $review->title,
+                'body'            => $review->body,
+                'reviewer_name'   => $review->reviewer_name ?? 'Anonymous',
+                'reviewer_avatar' => $review->customer?->avatar_url,
+                'created_at'      => $review->created_at->toDateString(),
             ],
         ], 201);
     }
