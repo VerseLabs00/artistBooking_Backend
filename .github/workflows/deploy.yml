@@ -44,6 +44,7 @@ jobs:
       - name: Run Post-Deployment Commands on VPS
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+            set -e
             cd /var/www/artist-booking
             
             # Run migrations
@@ -54,7 +55,11 @@ jobs:
             php artisan route:cache
             php artisan view:cache
             
-            # Set proper permissions for Laravel directories
-            sudo chown -R www-data:www-data storage bootstrap/cache
-            sudo chmod -R 775 storage bootstrap/cache
+            # Set proper permissions for Laravel directories if sudo is available without a password
+            if sudo -n true 2>/dev/null; then
+              sudo chown -R www-data:www-data storage bootstrap/cache
+              sudo chmod -R 775 storage bootstrap/cache
+            else
+              echo "sudo requires a password or is not allowed; skipping chown/chmod. Ensure storage and bootstrap/cache are writable by the webserver user on the server."
+            fi
           EOF
