@@ -1,0 +1,60 @@
+name: Deploy Laravel Backend
+
+on:
+  push:
+    branches:
+      - production
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, xml, ctype, iconv, mysql, zip, bcmath, gd
+          coverage: none
+
+      - name: Install Composer Dependencies
+        run: |
+          composer install --no-dev --optimize-autoloader --no-interaction --no-progress
+
+      - name: Install SSH Key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          known_hosts: 'unimportant-value-will-be-skipped-by-disable-host-key-checking'
+          if_key_exists: replace
+
+      - name: Deploy to Ubuntu Server via Rsync
+        run: |
+          rsync -e "ssh -o StrictHostKeyChecking=no" -az --delete \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='.env' \
+            --exclude='tests/' \
+            --exclude='storage/logs/*.log' \
+            ./ ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/var/www/artist-booking/
+
+      - name: Run Post-Deployment Commands on VPS
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+            cd /var/www/artist-booking
+            
+            # Run migrations
+            php artisan migrate --force
+            
+            # Cache config, routes, and views for production performance
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+            
+            # Set proper permissions for Laravel directories
+            sudo chown -R www-data:www-data storage bootstrap/cache
+            sudo chmod -R 775 storage bootstrap/cache
+          EOF
