@@ -23,7 +23,7 @@ class OnboardingController extends Controller
             'location' => 'required|string|max:255',
             'phone_number' => 'required|string|max:20',
             'dob' => 'nullable|date',
-            'category' => 'required|string|in:Musician,Producer,DJ',
+            'category' => 'required|string|in:Singer,Rapper,Live Band,Dance Group,Producer,DJ,Sound System,Lighting System,Photographer,Videographer',
             'email' => 'required|email|max:255',
         ]);
 
