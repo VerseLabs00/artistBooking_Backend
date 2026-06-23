@@ -6,13 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\ArtistMedia;
 use App\Models\ArtistProfile;
 use App\Traits\HandlesCloudinaryUploads;
+use App\Traits\ValidatesUploadFiles;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class OnboardingController extends Controller
 {
-    use HandlesCloudinaryUploads;
+    use HandlesCloudinaryUploads, ValidatesUploadFiles;
 
 
     public function storeBasicInfo(Request $request)
@@ -43,26 +44,41 @@ class OnboardingController extends Controller
     {
         $request->validate([
             'document_type' => 'required|string|in:National ID,Passport,Bank Statement,Driving License',
-            'front' => 'required|file|mimes:jpg,jpeg,png,pdf|max:10240',
-            'back' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
-            'selfie' => 'required|file|mimes:jpg,jpeg,png|max:10240',
+            'front'  => ['required', 'file', 'max:10240', $this->verificationFileRule(allowPdf: true)],
+            'back'   => ['nullable', 'file', 'max:10240', $this->verificationFileRule(allowPdf: true)],
+            'selfie' => ['required', 'file', 'max:10240', $this->verificationFileRule(allowPdf: false)],
+        ], [
+            'front.required'  => 'Please upload the front side of your document.',
+            'selfie.required' => 'Please upload a selfie with your document.',
+            'front.max'       => 'Front side document exceeds the 10MB size limit.',
+            'back.max'        => 'Back side document exceeds the 10MB size limit.',
+            'selfie.max'      => 'Selfie exceeds the 10MB size limit.',
         ]);
 
         $user = $request->user();
 
         try {
             DB::transaction(function () use ($request, $user) {
-
-                $this->uploadToCloudinary($request->file('front'), $user->id, 'verification_front', 'document');
+                $uploads = [
+                    ['file' => $request->file('front'), 'purpose' => 'verification_front', 'type' => 'document', 'label' => 'Front side document'],
+                    ['file' => $request->file('selfie'), 'purpose' => 'selfie', 'type' => 'image', 'label' => 'Selfie'],
+                ];
 
                 if ($request->hasFile('back')) {
-                    $this->uploadToCloudinary($request->file('back'), $user->id, 'verification_back', 'document');
+                    $uploads[] = ['file' => $request->file('back'), 'purpose' => 'verification_back', 'type' => 'document', 'label' => 'Back side document'];
                 }
 
-                $this->uploadToCloudinary($request->file('selfie'), $user->id, 'selfie', 'image');
+                foreach ($uploads as $upload) {
+                    try {
+                        $this->uploadToCloudinary($upload['file'], $user->id, $upload['purpose'], $upload['type']);
+                    } catch (\Exception $e) {
+                        throw ValidationException::withMessages([
+                            $upload['purpose'] => "{$upload['label']} ({$upload['file']->getClientOriginalName()}) failed to upload: {$e->getMessage()}",
+                        ]);
+                    }
+                }
 
                 $user->artistProfile()->update(['verification_status' => 'pending']);
-
 
                 $profile = $user->artistProfile()->first();
                 $artistName = $profile ? ($profile->stage_name ?: $profile->full_name) : 'An artist';
@@ -76,6 +92,8 @@ class OnboardingController extends Controller
 
             return response()->json(['message' => 'Verification documents uploaded successfully']);
 
+        } catch (ValidationException $e) {
+            throw $e;
         } catch (\Exception $e) {
             return response()->json(['message' => 'Upload failed: ' . $e->getMessage()], 500);
         }

@@ -71,4 +71,26 @@ class ArtistProfile extends Model
     {
         return $this->hasOne(ArtistBankDetail::class);
     }
+
+    public function bookings()
+    {
+        return $this->hasMany(Booking::class);
+    }
+
+    public function calendarEntries()
+    {
+        return $this->hasMany(ArtistCalendarEntry::class);
+    }
+
+    public function scopeAvailableOnDate($query, string $date)
+    {
+        return $query
+            ->whereDoesntHave('bookings', function ($q) use ($date) {
+                $q->whereDate('event_date', $date)
+                  ->whereIn('booking_status', ['confirmed', 'pending_payment', 'completed']);
+            })
+            ->whereDoesntHave('calendarEntries', function ($q) use ($date) {
+                $q->whereDate('entry_date', $date);
+            });
+    }
 }

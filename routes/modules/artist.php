@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\ArtistBankController;
+use App\Http\Controllers\Api\ArtistCalendarController;
 use App\Http\Controllers\Api\ArtistProfileController;
 use App\Http\Controllers\Api\ArtistBookingRequestController;
 use Illuminate\Support\Facades\Route;
@@ -14,6 +15,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/profile/gallery/{id}', [ArtistProfileController::class, 'deleteMedia']);
     Route::post('/profile/sync-links', [ArtistProfileController::class, 'syncExternalLinks']);
 
+    Route::get('/profile/calendar', [ArtistCalendarController::class, 'index']);
+    Route::post('/profile/calendar', [ArtistCalendarController::class, 'store']);
+    Route::delete('/profile/calendar/{id}', [ArtistCalendarController::class, 'destroy']);
 
     Route::get('/profile/bank', [ArtistBankController::class, 'show']);
 
