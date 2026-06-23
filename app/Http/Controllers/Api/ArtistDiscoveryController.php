@@ -44,9 +44,12 @@ class ArtistDiscoveryController extends Controller
     public function artists(Request $request)
     {
         $request->validate([
-            'category' => 'sometimes|string|max:100',
-            'search'   => 'sometimes|string|max:100',
-            'per_page' => 'sometimes|integer|min:1|max:50',
+            'category'   => 'sometimes|string|max:100',
+            'search'     => 'sometimes|string|max:100',
+            'location'   => 'sometimes|string|max:100',
+            'event_date' => 'sometimes|date|after_or_equal:today',
+            'max_budget' => 'sometimes|numeric|min:0',
+            'per_page'   => 'sometimes|integer|min:1|max:50',
         ]);
 
         $query = ArtistProfile::query()
@@ -73,6 +76,22 @@ class ArtistDiscoveryController extends Controller
             });
         }
 
+        if ($request->filled('location')) {
+            $query->where('location', 'LIKE', '%' . $request->location . '%');
+        }
+
+        if ($request->filled('max_budget')) {
+            $query->where(function ($q) use ($request) {
+                $q->whereNull('starting_price')
+                  ->orWhere('starting_price', '<=', $request->max_budget);
+            });
+        }
+
+        if ($request->filled('event_date')) {
+            $date = $request->event_date;
+            $query->availableOnDate($date);
+        }
+
         $perPage = $request->integer('per_page', 12);
         $artists  = $query->paginate($perPage);
 
@@ -91,14 +110,16 @@ class ArtistDiscoveryController extends Controller
     public function nearYou(Request $request)
     {
         $request->validate([
-            'location' => 'required|string|max:100',
-            'per_page' => 'sometimes|integer|min:1|max:50',
+            'location'   => 'required|string|max:100',
+            'event_date' => 'sometimes|date|after_or_equal:today',
+            'max_budget' => 'sometimes|numeric|min:0',
+            'per_page'   => 'sometimes|integer|min:1|max:50',
         ]);
 
         $location = $request->location;
         $perPage  = $request->integer('per_page', 12);
 
-        $artists = ArtistProfile::query()
+        $query = ArtistProfile::query()
             ->where('is_onboarded', true)
             ->where('location', 'LIKE', '%' . $location . '%')
             ->select([
@@ -108,8 +129,20 @@ class ArtistDiscoveryController extends Controller
                 'verification_status',
             ])
             ->withAvg(['reviews' => fn ($q) => $q->approved()], 'rating')
-            ->withCount(['reviews' => fn ($q) => $q->approved()])
-            ->paginate($perPage);
+            ->withCount(['reviews' => fn ($q) => $q->approved()]);
+
+        if ($request->filled('max_budget')) {
+            $query->where(function ($q) use ($request) {
+                $q->whereNull('starting_price')
+                  ->orWhere('starting_price', '<=', $request->max_budget);
+            });
+        }
+
+        if ($request->filled('event_date')) {
+            $query->availableOnDate($request->event_date);
+        }
+
+        $artists = $query->paginate($perPage);
 
         return response()->json([
             'location_query' => $location,
