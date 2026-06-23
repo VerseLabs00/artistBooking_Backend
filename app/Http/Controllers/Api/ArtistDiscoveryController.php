@@ -25,13 +25,31 @@ class ArtistDiscoveryController extends Controller
         ]);
     }
 
+    public function stats()
+    {
+        $totalArtists = ArtistProfile::where('is_onboarded', true)->count();
+        $sampleAvatars = ArtistProfile::where('is_onboarded', true)
+            ->whereNotNull('avatar_url')
+            ->where('avatar_url', '!=', '')
+            ->limit(5)
+            ->pluck('avatar_url');
+
+        return response()->json([
+            'total_artists' => $totalArtists,
+            'sample_avatars' => $sampleAvatars,
+        ]);
+    }
+
 
     public function artists(Request $request)
     {
         $request->validate([
-            'category' => 'sometimes|string|max:100',
-            'search'   => 'sometimes|string|max:100',
-            'per_page' => 'sometimes|integer|min:1|max:50',
+            'category'   => 'sometimes|string|max:100',
+            'search'     => 'sometimes|string|max:100',
+            'location'   => 'sometimes|string|max:100',
+            'event_date' => 'sometimes|date|after_or_equal:today',
+            'max_budget' => 'sometimes|numeric|min:0',
+            'per_page'   => 'sometimes|integer|min:1|max:50',
         ]);
 
         $query = ArtistProfile::query()
@@ -40,6 +58,7 @@ class ArtistDiscoveryController extends Controller
                 'id', 'user_id', 'stage_name', 'full_name',
                 'category', 'location', 'avatar_url', 'cover_url',
                 'starting_price', 'max_price', 'tags', 'short_bio',
+                'verification_status',
             ])
             ->withAvg(['reviews' => fn ($q) => $q->approved()], 'rating')
             ->withCount(['reviews' => fn ($q) => $q->approved()]);
@@ -55,6 +74,22 @@ class ArtistDiscoveryController extends Controller
                   ->orWhere('full_name', 'LIKE', $keyword)
                   ->orWhere('short_bio', 'LIKE', $keyword);
             });
+        }
+
+        if ($request->filled('location')) {
+            $query->where('location', 'LIKE', '%' . $request->location . '%');
+        }
+
+        if ($request->filled('max_budget')) {
+            $query->where(function ($q) use ($request) {
+                $q->whereNull('starting_price')
+                  ->orWhere('starting_price', '<=', $request->max_budget);
+            });
+        }
+
+        if ($request->filled('event_date')) {
+            $date = $request->event_date;
+            $query->availableOnDate($date);
         }
 
         $perPage = $request->integer('per_page', 12);
@@ -75,24 +110,39 @@ class ArtistDiscoveryController extends Controller
     public function nearYou(Request $request)
     {
         $request->validate([
-            'location' => 'required|string|max:100',
-            'per_page' => 'sometimes|integer|min:1|max:50',
+            'location'   => 'required|string|max:100',
+            'event_date' => 'sometimes|date|after_or_equal:today',
+            'max_budget' => 'sometimes|numeric|min:0',
+            'per_page'   => 'sometimes|integer|min:1|max:50',
         ]);
 
         $location = $request->location;
         $perPage  = $request->integer('per_page', 12);
 
-        $artists = ArtistProfile::query()
+        $query = ArtistProfile::query()
             ->where('is_onboarded', true)
             ->where('location', 'LIKE', '%' . $location . '%')
             ->select([
                 'id', 'user_id', 'stage_name', 'full_name',
                 'category', 'location', 'avatar_url', 'cover_url',
                 'starting_price', 'max_price', 'tags', 'short_bio',
+                'verification_status',
             ])
             ->withAvg(['reviews' => fn ($q) => $q->approved()], 'rating')
-            ->withCount(['reviews' => fn ($q) => $q->approved()])
-            ->paginate($perPage);
+            ->withCount(['reviews' => fn ($q) => $q->approved()]);
+
+        if ($request->filled('max_budget')) {
+            $query->where(function ($q) use ($request) {
+                $q->whereNull('starting_price')
+                  ->orWhere('starting_price', '<=', $request->max_budget);
+            });
+        }
+
+        if ($request->filled('event_date')) {
+            $query->availableOnDate($request->event_date);
+        }
+
+        $artists = $query->paginate($perPage);
 
         return response()->json([
             'location_query' => $location,
@@ -134,17 +184,18 @@ class ArtistDiscoveryController extends Controller
 
 
         $recentReviews = (clone $reviewsQuery)
-            ->with('customer:id,name')
+            ->with('customer:id,name,avatar_url')
             ->orderByDesc('created_at')
             ->limit(3)
             ->get()
             ->map(fn ($r) => [
-                'id'            => $r->id,
-                'rating'        => $r->rating,
-                'title'         => $r->title,
-                'body'          => $r->body,
-                'reviewer_name' => $r->reviewer_name ?? ($r->customer?->name ?? 'Anonymous'),
-                'created_at'    => $r->created_at->toDateString(),
+                'id'              => $r->id,
+                'rating'          => $r->rating,
+                'title'           => $r->title,
+                'body'            => $r->body,
+                'reviewer_name'   => $r->reviewer_name ?? ($r->customer?->name ?? 'Anonymous'),
+                'reviewer_avatar' => $r->customer?->avatar_url,
+                'created_at'      => $r->created_at->toDateString(),
             ]);
 
         return response()->json([
@@ -232,12 +283,13 @@ class ArtistDiscoveryController extends Controller
                 ],
             ],
             'data' => $reviews->map(fn ($r) => [
-                'id'            => $r->id,
-                'rating'        => $r->rating,
-                'title'         => $r->title,
-                'body'          => $r->body,
-                'reviewer_name' => $r->reviewer_name ?? ($r->customer?->name ?? 'Anonymous'),
-                'created_at'    => $r->created_at->toDateString(),
+                'id'              => $r->id,
+                'rating'          => $r->rating,
+                'title'           => $r->title,
+                'body'            => $r->body,
+                'reviewer_name'   => $r->reviewer_name ?? ($r->customer?->name ?? 'Anonymous'),
+                'reviewer_avatar' => $r->customer?->avatar_url,
+                'created_at'      => $r->created_at->toDateString(),
             ]),
             'meta' => [
                 'current_page' => $reviews->currentPage(),
@@ -297,15 +349,18 @@ class ArtistDiscoveryController extends Controller
             'status'            => 'approved',
         ]);
 
+        $review->load('customer');
+
         return response()->json([
             'message' => 'Review submitted successfully.',
             'review'  => [
-                'id'            => $review->id,
-                'rating'        => $review->rating,
-                'title'         => $review->title,
-                'body'          => $review->body,
-                'reviewer_name' => $review->reviewer_name ?? 'Anonymous',
-                'created_at'    => $review->created_at->toDateString(),
+                'id'              => $review->id,
+                'rating'          => $review->rating,
+                'title'           => $review->title,
+                'body'            => $review->body,
+                'reviewer_name'   => $review->reviewer_name ?? 'Anonymous',
+                'reviewer_avatar' => $review->customer?->avatar_url,
+                'created_at'      => $review->created_at->toDateString(),
             ],
         ], 201);
     }
@@ -327,6 +382,7 @@ class ArtistDiscoveryController extends Controller
             'max_price'      => $artist->max_price,
             'tags'           => $artist->tags ?? [],
             'short_bio'      => $artist->short_bio,
+            'verification_status' => $artist->verification_status,
             'rating'         => [
                 'average' => $artist->reviews_avg_rating ? round((float) $artist->reviews_avg_rating, 1) : null,
                 'total'   => (int) ($artist->reviews_count ?? 0),

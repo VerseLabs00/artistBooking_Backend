@@ -39,11 +39,12 @@ class BookingController extends Controller
     {
         $validated = $request->validate([
             'artist_profile_id'    => 'required|uuid|exists:artist_profiles,id',
-            'event_date'           => 'required|date|after:today',
+            'event_date'           => 'required|date|after_or_equal:today',
             'event_start_time'     => 'required|date_format:H:i',
             'event_duration_hours' => 'nullable|numeric|min:0.5|max:24',
             'event_type'           => 'required|string|max:100',
             'venue'                => 'required|string|max:255',
+            'customer_phone'       => 'required|string|max:20',
             'venue_lat'            => 'nullable|numeric|between:-90,90',
             'venue_lng'            => 'nullable|numeric|between:-180,180',
             'special_notes'        => 'nullable|string|max:1000',
@@ -68,6 +69,7 @@ class BookingController extends Controller
             'venue'                => $validated['venue'],
             'venue_lat'            => $validated['venue_lat'] ?? null,
             'venue_lng'            => $validated['venue_lng'] ?? null,
+            'customer_phone'       => $validated['customer_phone'],
             'special_notes'        => $validated['special_notes'] ?? null,
             'agreed_price'         => $agreedPrice,
             'advance_amount'       => $advanceAmount,
@@ -76,7 +78,6 @@ class BookingController extends Controller
             'payhere_order_id'     => $orderId,
             'customer_name'        => $user->name,
             'customer_email'       => $user->email,
-            'customer_phone'       => $user->phone ?? null,
         ]);
 
         $ph     = $this->payhereConfig();

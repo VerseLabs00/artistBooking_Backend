@@ -11,7 +11,10 @@ class BookingController extends Controller
 
     public function index(Request $request)
     {
-        $query = Booking::with(['customer:id,name,email', 'artistProfile:id,stage_name,full_name']);
+        $query = Booking::with([
+            'customer:id,name,email,avatar_url', 
+            'artistProfile:id,stage_name,full_name,avatar_url'
+        ]);
 
         if ($request->filled('status')) {
             $query->where('booking_status', $request->status);

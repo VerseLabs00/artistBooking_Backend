@@ -32,6 +32,7 @@ class ArtistBookingRequestController extends Controller
             ->first();
 
         $upcoming = Booking::where('artist_profile_id', $artistProfileId)
+            ->with('customer:id,name,email,avatar_url')
             ->where('booking_status', 'confirmed')
             ->where('event_date', '>=', now()->toDateString())
             ->orderBy('event_date')
@@ -39,6 +40,7 @@ class ArtistBookingRequestController extends Controller
             ->get();
 
         $recent = Booking::where('artist_profile_id', $artistProfileId)
+            ->with('customer:id,name,email,avatar_url')
             ->orderByDesc('created_at')
             ->limit(5)
             ->get();
@@ -68,7 +70,7 @@ class ArtistBookingRequestController extends Controller
         }
 
         $bookings = Booking::where('artist_profile_id', $user->artistProfile->id)
-            ->with('customer:id,name,email')
+            ->with('customer:id,name,email,avatar_url')
             ->orderByDesc('event_date')
             ->paginate(10);
 
@@ -92,6 +94,7 @@ class ArtistBookingRequestController extends Controller
         }
 
         $booking = Booking::where('artist_profile_id', $user->artistProfile->id)
+            ->with('customer:id,name,email,avatar_url')
             ->findOrFail($id);
 
         return response()->json([
@@ -109,10 +112,11 @@ class ArtistBookingRequestController extends Controller
         }
 
         $validated = $request->validate([
-            'status' => 'required|in:rejected,completed'
+            'status' => 'required|in:rejected,completed,confirmed'
         ]);
 
         $booking = Booking::where('artist_profile_id', $user->artistProfile->id)
+            ->with('customer:id,name,email,avatar_url')
             ->findOrFail($id);
 
 
@@ -123,13 +127,26 @@ class ArtistBookingRequestController extends Controller
         $booking->update(['booking_status' => $validated['status']]);
 
         $artistName = $user->artistProfile ? ($user->artistProfile->stage_name ?: $user->artistProfile->full_name) : 'The artist';
+        
+        $notificationTitle = 'Booking Status Updated';
+        $notificationBody = "Your booking #{$booking->payhere_order_id} with {$artistName} has been updated to {$validated['status']}.";
+
+        if ($validated['status'] === 'rejected') {
+            $notificationTitle = 'Booking Rejected';
+            $notificationBody = "Your booking #{$booking->payhere_order_id} was rejected by {$artistName}.";
+        } elseif ($validated['status'] === 'confirmed') {
+            $notificationTitle = 'Booking Accepted';
+            $notificationBody = "Your booking #{$booking->payhere_order_id} was accepted by {$artistName}.";
+        } elseif ($validated['status'] === 'completed') {
+            $notificationTitle = 'Booking Completed';
+            $notificationBody = "Your booking #{$booking->payhere_order_id} with {$artistName} has been completed.";
+        }
+
         \App\Models\Notification::sendToUser(
             $booking->customer_id,
             'booking',
-            $validated['status'] === 'rejected' ? 'Booking Rejected' : 'Booking Completed',
-            $validated['status'] === 'rejected'
-                ? "Your booking #{$booking->payhere_order_id} was rejected by {$artistName}."
-                : "Your booking #{$booking->payhere_order_id} with {$artistName} has been completed.",
+            $notificationTitle,
+            $notificationBody,
             "/bookings"
         );
 
@@ -155,7 +172,9 @@ class ArtistBookingRequestController extends Controller
             'agreed_price'    => $b->agreed_price,
             'advance_amount'  => $b->advance_amount,
             'balance_due'     => (float) $b->agreed_price - (float) $b->advance_amount,
+            'customer'        => $b->customer,
             'customer_name'   => $b->customer_name,
+            'customer_avatar' => $b->customer?->avatar_url,
             'created_at'      => $b->created_at->toDateTimeString(),
         ];
 

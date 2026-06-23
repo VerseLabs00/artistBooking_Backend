@@ -11,7 +11,7 @@ class ArtistController extends Controller
 
     public function index(Request $request)
     {
-        $query = ArtistProfile::with('user:id,name,email');
+        $query = ArtistProfile::with(['user:id,name,email', 'user.artistMedia']);
 
         if ($request->filled('status')) {
             $query->where('verification_status', $request->status);
@@ -45,14 +45,32 @@ class ArtistController extends Controller
             'status' => 'required|in:approved,rejected',
         ]);
 
+        $status = $request->status === 'approved' ? 'verified' : 'rejected';
+
         $artist = ArtistProfile::findOrFail($id);
         $artist->update([
-            'verification_status' => $request->status,
-            'is_onboarded' => ($request->status === 'approved')
+            'verification_status' => $status,
+            'is_onboarded' => ($status === 'verified')
         ]);
 
+        // Send notification to the artist
+        if ($artist->user_id) {
+            $title = ($status === 'verified') ? 'Profile Approved' : 'Account Suspended';
+            $message = ($status === 'verified') 
+                ? "Congratulations! Your artist profile has been approved. You are now visible to potential clients."
+                : "Your artist profile has been suspended by the platform administration. To discuss reactivation, please contact us at admin@perfoma.lk or +94 77 123 4567.";
+            
+            \App\Models\Notification::sendToUser(
+                $artist->user_id,
+                'status_change',
+                $title,
+                $message,
+                '/account'
+            );
+        }
+
         return response()->json([
-            'message' => "Artist profile has been " . $request->status,
+            'message' => "Artist profile has been " . ($status === 'verified' ? 'approved' : 'rejected'),
             'artist' => $artist
         ]);
     }
@@ -74,11 +92,10 @@ class ArtistController extends Controller
 
 
         if ($artist->user_id) {
-            \App\Models\Notification::sendToUser(
+            NotificationController::send(
                 $artist->user_id,
-                'artist',
                 $artist->is_onboarded ? 'Account Re-activated' : 'Account Suspended',
-                "Your artist profile has been " . ($artist->is_onboarded ? 're-activated' : 'suspended') . " by the platform administration.",
+                "Your artist profile has been " . ($artist->is_onboarded ? 're-activated' : 'suspended') . " by the platform administration. To discuss reactivation, please contact us at admin@perfoma.lk or +94 77 123 4567.",
                 '/profile'
             );
         }
@@ -93,8 +110,14 @@ class ArtistController extends Controller
     public function destroy($id)
     {
         $artist = ArtistProfile::findOrFail($id);
-        $artist->delete();
+        
+        // Delete the associated user which will cascade delete the profile and media
+        if ($artist->user) {
+            $artist->user->delete();
+        } else {
+            $artist->delete();
+        }
 
-        return response()->json(['message' => 'Artist profile deleted successfully.']);
+        return response()->json(['message' => 'Artist profile and associated user account deleted successfully.']);
     }
 }
