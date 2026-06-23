@@ -43,9 +43,9 @@ class OnboardingController extends Controller
     {
         $request->validate([
             'document_type' => 'required|string|in:National ID,Passport,Bank Statement,Driving License',
-            'front' => 'required|file|mimes:jpg,jpeg,png,pdf|max:10240',
-            'back' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
-            'selfie' => 'required|file|mimes:jpg,jpeg,png|max:10240',
+            'front' => 'required|file|mimes:jpg,jpeg,png,pdf,heic,heif|max:10240',
+            'back' => 'nullable|file|mimes:jpg,jpeg,png,pdf,heic,heif|max:10240',
+            'selfie' => 'required|file|mimes:jpg,jpeg,png,heic,heif|max:10240',
         ]);
 
         $user = $request->user();
