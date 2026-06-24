@@ -132,21 +132,17 @@ class OnboardingController extends Controller
     public function storeTalent(Request $request)
     {
         $request->validate([
-            'photos'   => 'required|array|min:1|max:6',
-            'photos.*' => 'required|file|mimes:jpg,jpeg,png,webp|max:10240',
+            'video'    => 'nullable|file|mimes:mp4,mov,avi,mkv,webm,flv,wmv|max:102400',
         ], [
-            'photos.required'   => 'Please upload at least one performance photo.',
-            'photos.min'        => 'Please upload at least one performance photo.',
-            'photos.max'        => 'You can upload a maximum of 6 photos.',
-            'photos.*.mimes'    => 'Each photo must be a JPG, PNG, or WebP image.',
-            'photos.*.max'      => 'Each photo must be under 10 MB.',
+            'video.mimes'       => 'The video must be MP4, MOV, AVI, MKV, WebM, FLV, or WMV.',
+            'video.max'         => 'The video must be under 100 MB.',
         ]);
 
         $user = $request->user();
 
         try {
-            foreach ($request->file('photos') as $file) {
-                $this->uploadToCloudinary($file, $user->id, 'talent_media', 'image');
+            if ($request->hasFile('video')) {
+                $this->uploadToCloudinary($request->file('video'), $user->id, 'talent_media', 'video');
             }
 
             // All three onboarding steps are now done.
