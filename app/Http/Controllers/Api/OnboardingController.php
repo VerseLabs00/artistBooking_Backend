@@ -16,26 +16,62 @@ class OnboardingController extends Controller
     use HandlesCloudinaryUploads, ValidatesUploadFiles;
 
 
+    /**
+     * Returns the onboarding completion status for the authenticated artist.
+     * Used by the frontend guard to redirect to the correct step.
+     */
+    public function status(Request $request)
+    {
+        $user    = $request->user();
+        $profile = $user->artistProfile()->first();
+
+        $basicInfoDone = $profile !== null;
+
+        $verificationDone = $basicInfoDone && $user->artistMedia()
+            ->where('purpose', 'verification_front')
+            ->exists();
+
+        $talentDone = $basicInfoDone && $user->artistMedia()
+            ->where('purpose', 'talent_media')
+            ->exists();
+
+        return response()->json([
+            'basic_info_done'   => $basicInfoDone,
+            'verification_done' => $verificationDone,
+            'talent_done'       => $talentDone,
+        ]);
+    }
+
+
     public function storeBasicInfo(Request $request)
     {
         $request->validate([
-            'full_name' => 'required|string|max:255',
-            'stage_name' => 'nullable|string|max:255',
-            'location' => 'required|string|max:255',
+            'full_name'    => 'required|string|max:255',
+            'stage_name'   => 'nullable|string|max:255',
+            'location'     => 'required|string|max:255',
             'phone_number' => 'required|string|max:20',
-            'dob' => 'nullable|date',
-            'category' => 'required|string|in:Singer,Rapper,Live Band,Dance Group,Producer,DJ,Sound System,Lighting System,Photographer,Videographer',
-            'email' => 'required|email|max:255',
+            'dob'          => 'nullable|date',
+            'category'     => 'required|string|in:Singer,Rapper,Live Band,Dance Group,Producer,DJ,Sound System,Lighting System,Photographer,Videographer',
+            'email'        => 'required|email|max:255',
         ]);
+
+        $existing = ArtistProfile::where('user_id', $request->user()->id)->first();
 
         $profile = ArtistProfile::updateOrCreate(
             ['user_id' => $request->user()->id],
             $request->only(['full_name', 'stage_name', 'location', 'phone_number', 'dob', 'category', 'email'])
         );
 
+        // If this is a brand-new profile, ensure status stays null (not pending)
+        // so it does not appear in the admin queue until talent step is complete.
+        if (!$existing) {
+            $profile->verification_status = null;
+            $profile->save();
+        }
+
         return response()->json([
             'message' => 'Basic information saved successfully',
-            'profile' => $profile
+            'profile' => $profile,
         ]);
     }
 
@@ -44,11 +80,6 @@ class OnboardingController extends Controller
     {
         $request->validate([
             'document_type' => 'required|string|in:National ID,Passport,Bank Statement,Driving License',
-
-            'front' => 'required|file|mimes:jpg,jpeg,png,pdf,heic,heif|max:10240',
-            'back' => 'nullable|file|mimes:jpg,jpeg,png,pdf,heic,heif|max:10240',
-            'selfie' => 'required|file|mimes:jpg,jpeg,png,heic,heif|max:10240',
-
             'front'  => ['required', 'file', 'max:10240', $this->verificationFileRule(allowPdf: true)],
             'back'   => ['nullable', 'file', 'max:10240', $this->verificationFileRule(allowPdf: true)],
             'selfie' => ['required', 'file', 'max:10240', $this->verificationFileRule(allowPdf: false)],
@@ -58,7 +89,6 @@ class OnboardingController extends Controller
             'front.max'       => 'Front side document exceeds the 10MB size limit.',
             'back.max'        => 'Back side document exceeds the 10MB size limit.',
             'selfie.max'      => 'Selfie exceeds the 10MB size limit.',
-
         ]);
 
         $user = $request->user();
@@ -66,8 +96,8 @@ class OnboardingController extends Controller
         try {
             DB::transaction(function () use ($request, $user) {
                 $uploads = [
-                    ['file' => $request->file('front'), 'purpose' => 'verification_front', 'type' => 'document', 'label' => 'Front side document'],
-                    ['file' => $request->file('selfie'), 'purpose' => 'selfie', 'type' => 'image', 'label' => 'Selfie'],
+                    ['file' => $request->file('front'),  'purpose' => 'verification_front', 'type' => 'document', 'label' => 'Front side document'],
+                    ['file' => $request->file('selfie'), 'purpose' => 'selfie',             'type' => 'image',    'label' => 'Selfie'],
                 ];
 
                 if ($request->hasFile('back')) {
@@ -84,16 +114,9 @@ class OnboardingController extends Controller
                     }
                 }
 
-                $user->artistProfile()->update(['verification_status' => 'pending']);
-
-                $profile = $user->artistProfile()->first();
-                $artistName = $profile ? ($profile->stage_name ?: $profile->full_name) : 'An artist';
-                \App\Models\Notification::sendToAdmins(
-                    'verification',
-                    'New Verification Request',
-                    "{$artistName} submitted a verification application.",
-                    '/verification'
-                );
+                // NOTE: We do NOT set verification_status here.
+                // The admin notification and pending status are set only after
+                // the artist completes the final talent step (storeTalent).
             });
 
             return response()->json(['message' => 'Verification documents uploaded successfully']);
@@ -109,35 +132,40 @@ class OnboardingController extends Controller
     public function storeTalent(Request $request)
     {
         $request->validate([
-            'media_file' => 'nullable|file|mimes:mp4,mov,avi,jpg,jpeg,png|max:51200',
-            'external_link' => 'nullable|url',
+            'photos'   => 'required|array|min:1|max:6',
+            'photos.*' => 'required|file|mimes:jpg,jpeg,png,webp|max:10240',
+        ], [
+            'photos.required'   => 'Please upload at least one performance photo.',
+            'photos.min'        => 'Please upload at least one performance photo.',
+            'photos.max'        => 'You can upload a maximum of 6 photos.',
+            'photos.*.mimes'    => 'Each photo must be a JPG, PNG, or WebP image.',
+            'photos.*.max'      => 'Each photo must be under 10 MB.',
         ]);
-
-        if (!$request->hasFile('media_file') && !$request->external_link) {
-            return response()->json(['message' => 'Either a media file or an external link is required'], 422);
-        }
 
         $user = $request->user();
 
         try {
-            if ($request->hasFile('media_file')) {
-                $file = $request->file('media_file');
-                $type = str_contains($file->getMimeType(), 'video') ? 'video' : 'image';
-                $this->uploadToCloudinary($file, $user->id, 'talent_media', $type);
+            foreach ($request->file('photos') as $file) {
+                $this->uploadToCloudinary($file, $user->id, 'talent_media', 'image');
             }
 
-            if ($request->external_link) {
-                ArtistMedia::create([
-                    'user_id' => $user->id,
-                    'media_type' => 'video',
-                    'purpose' => 'talent_media',
-                    'url' => $request->external_link,
-                    'is_external_link' => true,
-                ]);
-            }
+            // All three onboarding steps are now done.
+            // Mark the profile as pending review so the admin can see it.
+            $user->artistProfile()->update([
+                'verification_status' => 'pending',
+                'is_onboarded'        => true,
+            ]);
 
+            // Notify admins that a complete application is ready for review.
+            $profile    = $user->artistProfile()->first();
+            $artistName = $profile ? ($profile->stage_name ?: $profile->full_name) : 'An artist';
 
-            $user->artistProfile()->update(['is_onboarded' => true]);
+            \App\Models\Notification::sendToAdmins(
+                'verification',
+                'New Verification Request',
+                "{$artistName} submitted a complete verification application.",
+                '/verification'
+            );
 
             return response()->json(['message' => 'Talent showcase saved successfully']);
 
@@ -147,19 +175,47 @@ class OnboardingController extends Controller
     }
 
 
+    /**
+     * Delete ALL data for the currently authenticated artist who has not
+     * completed onboarding, then log them out.  Called when the artist
+     * abandons registration and tries to log in again.
+     */
+    public function cancelRegistration(Request $request)
+    {
+        $user = $request->user();
+
+        // Only allow cancellation if onboarding is not yet finished
+        $talentDone = $user->artistMedia()
+            ->where('purpose', 'talent_media')
+            ->exists();
+
+        if ($talentDone) {
+            return response()->json(['message' => 'Onboarding already complete.'], 400);
+        }
+
+        // Delete artist profile and all media (cascade handles media via user delete)
+        $user->currentAccessToken()->delete();
+        $user->delete(); // cascade deletes artist_profiles + artist_media
+
+        return response()->json(['message' => 'Incomplete registration removed.']);
+    }
+
+
     private function uploadToCloudinary($file, $userId, $purpose, $type)
     {
-        $resourceType = ($type === 'video') ? 'video' : (($type === 'document' && $file->getClientOriginalExtension() === 'pdf') ? 'raw' : 'image');
+        $resourceType = ($type === 'video')
+            ? 'video'
+            : (($type === 'document' && $file->getClientOriginalExtension() === 'pdf') ? 'raw' : 'image');
 
         $upload = $this->uploadFile($file, "artists/{$userId}/{$purpose}", $resourceType);
 
         return ArtistMedia::create([
-            'user_id' => $userId,
-            'media_type' => $type,
-            'purpose' => $purpose,
-            'url' => $upload['secure_url'],
+            'user_id'              => $userId,
+            'media_type'           => $type,
+            'purpose'              => $purpose,
+            'url'                  => $upload['secure_url'],
             'cloudinary_public_id' => $upload['public_id'],
-            'is_external_link' => false,
+            'is_external_link'     => false,
         ]);
     }
 }
