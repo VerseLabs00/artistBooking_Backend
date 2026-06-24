@@ -195,7 +195,7 @@ class ArtistProfileController extends Controller
     public function syncExternalLinks(Request $request)
     {
         $request->validate([
-            'links'         => 'required|array',
+            'links'         => 'array',
             'links.*.url'   => 'nullable|url',
             'links.*.title' => 'nullable|string|max:255',
         ]);

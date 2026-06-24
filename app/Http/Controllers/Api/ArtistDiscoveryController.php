@@ -161,7 +161,7 @@ class ArtistDiscoveryController extends Controller
     {
         $artist = ArtistProfile::with([
 
-                'user.artistMedia' => fn ($q) => $q->where('purpose', 'talent_media'),
+                'user.artistMedia' => fn ($q) => $q->where('purpose', 'talent_media')->where('is_external_link', true),
             ])
             ->where('is_onboarded', true)
             ->findOrFail($id);
