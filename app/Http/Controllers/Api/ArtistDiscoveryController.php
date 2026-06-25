@@ -57,7 +57,7 @@ class ArtistDiscoveryController extends Controller
             ->select([
                 'id', 'user_id', 'stage_name', 'full_name',
                 'category', 'location', 'avatar_url', 'cover_url',
-                'starting_price', 'max_price', 'tags', 'short_bio',
+                'full_price', 'advance', 'tags', 'short_bio',
                 'verification_status',
             ])
             ->withAvg(['reviews' => fn ($q) => $q->approved()], 'rating')
@@ -125,7 +125,7 @@ class ArtistDiscoveryController extends Controller
             ->select([
                 'id', 'user_id', 'stage_name', 'full_name',
                 'category', 'location', 'avatar_url', 'cover_url',
-                'starting_price', 'max_price', 'tags', 'short_bio',
+                'full_price', 'advance', 'tags', 'short_bio',
                 'verification_status',
             ])
             ->withAvg(['reviews' => fn ($q) => $q->approved()], 'rating')
@@ -133,8 +133,8 @@ class ArtistDiscoveryController extends Controller
 
         if ($request->filled('max_budget')) {
             $query->where(function ($q) use ($request) {
-                $q->whereNull('starting_price')
-                  ->orWhere('starting_price', '<=', $request->max_budget);
+                $q->whereNull('full_price')
+                  ->orWhere('full_price', '<=', $request->max_budget);
             });
         }
 
@@ -212,8 +212,8 @@ class ArtistDiscoveryController extends Controller
                 'bio_2'            => $artist->bio_2,
                 'paragraph'        => $artist->paragraph,
                 'tags'             => $artist->tags ?? [],
-                'starting_price'   => $artist->starting_price,
-                'max_price'        => $artist->max_price,
+                'full_price'       => $artist->full_price,
+                'advance'          => $artist->advance,
                 'youtube_link'     => $artist->youtube_link,
                 'facebook_link'    => $artist->facebook_link,
                 'instagram_link'   => $artist->instagram_link,
@@ -378,8 +378,8 @@ class ArtistDiscoveryController extends Controller
             'location'       => $artist->location,
             'avatar_url'     => $artist->avatar_url,
             'cover_url'      => $artist->cover_url,
-            'starting_price' => $artist->starting_price,
-            'max_price'      => $artist->max_price,
+            'full_price'     => $artist->full_price,
+            'advance'        => $artist->advance,
             'tags'           => $artist->tags ?? [],
             'short_bio'      => $artist->short_bio,
             'verification_status' => $artist->verification_status,

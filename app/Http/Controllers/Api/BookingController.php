@@ -54,8 +54,13 @@ class BookingController extends Controller
         $artist = ArtistProfile::where('is_onboarded', true)
                                ->findOrFail($validated['artist_profile_id']);
 
-        $agreedPrice  = (float) $artist->starting_price;
-        $advanceAmount = round($agreedPrice * 0.30, 2);
+        $agreedPrice = (float) $artist->full_price;
+        $advanceAmount = (float) $artist->advance;
+        
+        // Get platform commission rate from settings
+        $commissionRate = (float) \App\Models\Setting::getValue('commission_rate', 15);
+        $platformFee = round($advanceAmount * ($commissionRate / 100), 2);
+        $totalPayment = $advanceAmount + $platformFee;
 
         $orderId = 'BK-' . strtoupper(Str::random(10));
 
@@ -73,6 +78,9 @@ class BookingController extends Controller
             'special_notes'        => $validated['special_notes'] ?? null,
             'agreed_price'         => $agreedPrice,
             'advance_amount'       => $advanceAmount,
+            'platform_fee'         => $platformFee,
+            'total_payment'         => $totalPayment,
+            'commission_rate'      => $commissionRate,
             'booking_status'       => 'pending_payment',
             'payment_status'       => 'pending',
             'payhere_order_id'     => $orderId,
@@ -81,7 +89,7 @@ class BookingController extends Controller
         ]);
 
         $ph     = $this->payhereConfig();
-        $amount = number_format($advanceAmount, 2, '.', '');
+        $amount = number_format($totalPayment, 2, '.', '');
         $currency = 'LKR';
 
         $hash = $this->generateHash(
@@ -98,6 +106,9 @@ class BookingController extends Controller
                 'order_id'       => $orderId,
                 'agreed_price'   => $agreedPrice,
                 'advance_amount' => $advanceAmount,
+                'platform_fee'   => $platformFee,
+                'total_payment'  => $totalPayment,
+                'commission_rate'=> $commissionRate,
                 'booking_status' => $booking->booking_status,
                 'payment_status' => $booking->payment_status,
             ],
@@ -218,7 +229,7 @@ class BookingController extends Controller
     public function show(string $id, Request $request)
     {
         $booking = Booking::where('customer_id', $request->user()->id)
-            ->with('artistProfile:id,stage_name,full_name,avatar_url,category,location,starting_price')
+            ->with('artistProfile:id,stage_name,full_name,avatar_url,category,location,full_price,advance')
             ->findOrFail($id);
 
         $data = $this->formatBooking($booking, detailed: true);
@@ -289,6 +300,9 @@ class BookingController extends Controller
             'venue_lng'       => $b->venue_lng,
             'agreed_price'    => $b->agreed_price,
             'advance_amount'  => $b->advance_amount,
+            'platform_fee'    => $b->platform_fee,
+            'total_payment'   => $b->total_payment,
+            'commission_rate' => $b->commission_rate,
             'balance_due'     => (float) $b->agreed_price - (float) $b->advance_amount,
             'artist'          => $b->artistProfile ? [
                 'id'         => $b->artistProfile->id,

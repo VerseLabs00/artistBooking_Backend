@@ -86,8 +86,8 @@ class ArtistProfileController extends Controller
             'bio_2' => 'sometimes|string',
             'paragraph' => 'sometimes|string',
 
-            'starting_price' => 'sometimes|numeric|min:0',
-            'max_price' => 'sometimes|numeric|min:0',
+            'full_price' => 'sometimes|numeric|min:0',
+            'advance' => 'sometimes|numeric|min:0',
 
             'youtube_link' => 'sometimes|nullable|url',
             'facebook_link' => 'sometimes|nullable|url',

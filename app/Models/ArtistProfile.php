@@ -37,8 +37,8 @@ class ArtistProfile extends Model
         'bio_2',
         'paragraph',
         'tags',
-        'starting_price',
-        'max_price',
+        'full_price',
+        'advance',
         'avatar_url',
         'cover_url',
         'youtube_link',
@@ -53,8 +53,8 @@ class ArtistProfile extends Model
         'is_onboarded' => 'boolean',
         'tags' => 'array',
         'dob' => 'date',
-        'starting_price' => 'decimal:2',
-        'max_price' => 'decimal:2',
+        'full_price' => 'decimal:2',
+        'advance' => 'decimal:2',
     ];
 
     public function user()
