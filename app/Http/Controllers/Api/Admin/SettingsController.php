@@ -13,7 +13,6 @@ class SettingsController extends Controller
         'deposit_rate'           => ['type' => 'float',   'default' => 30],
         'featured_listing_price' => ['type' => 'float',   'default' => 2500],
         'auto_approve_enabled'   => ['type' => 'boolean', 'default' => false],
-        'maintenance_mode'       => ['type' => 'boolean', 'default' => false],
         'notifications_enabled'  => ['type' => 'boolean', 'default' => true],
     ];
 
@@ -41,7 +40,6 @@ class SettingsController extends Controller
             'deposit_rate'           => 'sometimes|numeric|min:0|max:100',
             'featured_listing_price' => 'sometimes|numeric|min:0',
             'auto_approve_enabled'   => 'sometimes|boolean',
-            'maintenance_mode'       => 'sometimes|boolean',
             'notifications_enabled'  => 'sometimes|boolean',
         ]);
 
