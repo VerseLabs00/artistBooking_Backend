@@ -43,6 +43,60 @@ class OnboardingController extends Controller
     }
 
 
+    public function getBasicInfo(Request $request)
+    {
+        $profile = $request->user()->artistProfile()->first();
+
+        if (!$profile) {
+            return response()->json(['message' => 'No basic info found'], 404);
+        }
+
+        return response()->json([
+            'full_name' => $profile->full_name,
+            'stage_name' => $profile->stage_name,
+            'location' => $profile->location,
+            'phone_number' => $profile->phone_number,
+            'dob' => $profile->dob,
+            'email' => $profile->email,
+            'category' => $profile->category,
+        ]);
+    }
+
+
+    public function getVerification(Request $request)
+    {
+        $user = $request->user();
+        
+        $frontMedia = $user->artistMedia()->where('purpose', 'verification_front')->first();
+        $backMedia = $user->artistMedia()->where('purpose', 'verification_back')->first();
+        $selfieMedia = $user->artistMedia()->where('purpose', 'selfie')->first();
+
+        if (!$frontMedia || !$selfieMedia) {
+            return response()->json(['message' => 'No verification documents found'], 404);
+        }
+
+        return response()->json([
+            'front_url' => $frontMedia->url,
+            'back_url' => $backMedia?->url,
+            'selfie_url' => $selfieMedia->url,
+        ]);
+    }
+
+
+    public function getTalent(Request $request)
+    {
+        $talentMedia = $request->user()->artistMedia()->where('purpose', 'talent_media')->first();
+
+        if (!$talentMedia) {
+            return response()->json(['message' => 'No talent video found'], 404);
+        }
+
+        return response()->json([
+            'video_url' => $talentMedia->url,
+        ]);
+    }
+
+
     public function storeBasicInfo(Request $request)
     {
         $request->validate([
