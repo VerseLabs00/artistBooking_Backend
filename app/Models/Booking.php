@@ -20,6 +20,11 @@ class Booking extends Model
         'special_notes',
         'agreed_price',
         'advance_amount',
+        'platform_fee',
+        'total_payment',
+        'commission_rate',
+        'venue_lat',
+        'venue_lng',
         'booking_status',
         'payment_status',
         'payhere_order_id',
@@ -35,6 +40,11 @@ class Booking extends Model
         'event_date'            => 'date',
         'agreed_price'          => 'decimal:2',
         'advance_amount'        => 'decimal:2',
+        'platform_fee'          => 'decimal:2',
+        'total_payment'         => 'decimal:2',
+        'commission_rate'       => 'decimal:2',
+        'venue_lat'             => 'decimal:8',
+        'venue_lng'             => 'decimal:8',
         'event_duration_hours'  => 'decimal:1',
     ];
 

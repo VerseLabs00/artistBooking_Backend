@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('artist_media', function (Blueprint $table) {
-            $table->string('title', 255)->nullable()->after('url');
+            if (!Schema::hasColumn('artist_media', 'title')) {
+                $table->string('title', 255)->nullable()->after('url');
+            }
         });
     }
 
