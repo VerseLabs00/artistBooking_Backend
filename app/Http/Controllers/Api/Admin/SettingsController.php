@@ -14,6 +14,7 @@ class SettingsController extends Controller
         'featured_listing_price' => ['type' => 'float',   'default' => 2500],
         'auto_approve_enabled'   => ['type' => 'boolean', 'default' => false],
         'notifications_enabled'  => ['type' => 'boolean', 'default' => true],
+        'maintenance_mode'       => ['type' => 'boolean', 'default' => false],
     ];
 
 
@@ -41,6 +42,7 @@ class SettingsController extends Controller
             'featured_listing_price' => 'sometimes|numeric|min:0',
             'auto_approve_enabled'   => 'sometimes|boolean',
             'notifications_enabled'  => 'sometimes|boolean',
+            'maintenance_mode'       => 'sometimes|boolean',
         ]);
 
         foreach ($this->schema as $key => $meta) {
