@@ -94,6 +94,7 @@ class CustomerController extends Controller
     public function destroy($id)
     {
         $customer = User::where('role', 'client')->findOrFail($id);
+        \App\Models\ArtistReview::where('customer_id', $id)->delete();
         $customer->delete();
 
         return response()->json(['message' => 'Customer account deleted successfully.']);
