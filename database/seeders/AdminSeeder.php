@@ -12,7 +12,7 @@ class AdminSeeder extends Seeder
     public function run(): void
     {
         User::updateOrCreate(
-            ['email' => 'admin@artist.com'],
+            ['email' => 'infoperforma.lk@gmail.com'],
             [
                 'name' => 'System Administrator',
                 'password' => Hash::make('admin123'),
