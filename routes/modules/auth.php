@@ -9,6 +9,7 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+Route::post('/auth/verify-reset-token', [AuthController::class, 'verifyResetToken']);
 
 Route::post('/auth/send-verification', [AuthController::class, 'sendVerification']);
 Route::post('/auth/verify-code', [AuthController::class, 'verifyCode']);

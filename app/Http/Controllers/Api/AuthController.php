@@ -143,6 +143,34 @@ class AuthController extends Controller
         ]);
     }
 
+    public function verifyResetToken(Request $request)
+    {
+        $request->validate([
+            'email' => ['required', 'email', 'exists:users,email'],
+            'token' => ['required', 'string'],
+        ]);
+
+        $reset = \DB::table('password_reset_tokens')->where('email', $request->email)->first();
+
+        if (!$reset || !Hash::check($request->token, $reset->token)) {
+            return response()->json([
+                'message' => 'Invalid token or email.',
+            ], 400);
+        }
+
+        if (now()->parse($reset->created_at)->addMinutes(60)->isPast()) {
+            \DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+            return response()->json([
+                'message' => 'Token has expired.',
+            ], 400);
+        }
+
+        return response()->json([
+            'message' => 'Token is valid.',
+            'valid' => true,
+        ]);
+    }
+
     public function sendVerification(Request $request)
     {
         $request->validate([
