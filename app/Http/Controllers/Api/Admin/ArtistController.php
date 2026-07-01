@@ -58,7 +58,7 @@ class ArtistController extends Controller
             $title = ($status === 'verified') ? 'Profile Approved' : 'Account Suspended';
             $message = ($status === 'verified') 
                 ? "Congratulations! Your artist profile has been approved. You are now visible to potential clients."
-                : "Your artist profile has been suspended by the platform administration. To discuss reactivation, please contact us at admin@perfoma.lk or +94 77 123 4567.";
+                : "Your artist profile has been suspended by the platform administration. To discuss reactivation, please contact us at infoperforma.lk@gmail.com or +94 70 403 5236.";
             
             \App\Models\Notification::sendToUser(
                 $artist->user_id,
@@ -95,7 +95,7 @@ class ArtistController extends Controller
             NotificationController::send(
                 $artist->user_id,
                 $artist->is_onboarded ? 'Account Re-activated' : 'Account Suspended',
-                "Your artist profile has been " . ($artist->is_onboarded ? 're-activated' : 'suspended') . " by the platform administration. To discuss reactivation, please contact us at admin@perfoma.lk or +94 77 123 4567.",
+                "Your artist profile has been " . ($artist->is_onboarded ? 're-activated' : 'suspended') . " by the platform administration. To discuss reactivation, please contact us at infoperforma.lk@gmail.com or +94 70 403 5236.",
                 '/profile'
             );
         }
