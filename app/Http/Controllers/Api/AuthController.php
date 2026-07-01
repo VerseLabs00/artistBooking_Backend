@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\VerificationCodeMail;
 use App\Models\User;
 use App\Mail\ResetPasswordMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
 
 class AuthController extends Controller
 {
@@ -138,6 +140,79 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Password has been reset successfully.',
+        ]);
+    }
+
+    public function sendVerification(Request $request)
+    {
+        $request->validate([
+            'email' => ['required', 'email', 'max:255'],
+        ]);
+
+        if (User::where('email', $request->email)->exists()) {
+            return response()->json([
+                'message' => 'An account with this email already exists. Please log in.',
+            ], 422);
+        }
+
+        $code = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        $expiresAt = now()->addMinutes(10);
+
+        \DB::table('email_verifications')->updateOrInsert(
+            ['email' => $request->email],
+            [
+                'code' => Hash::make($code),
+                'expires_at' => $expiresAt,
+                'updated_at' => now(),
+            ]
+        );
+
+        try {
+            Mail::to($request->email)->send(new VerificationCodeMail($code));
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to send verification email. Please try again later.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+
+        return response()->json([
+            'message' => 'Verification code sent to your email.',
+            'expires_in_minutes' => 10,
+        ]);
+    }
+
+    public function verifyCode(Request $request)
+    {
+        $request->validate([
+            'email' => ['required', 'email', 'max:255'],
+            'code' => ['required', 'string', 'size:6'],
+        ]);
+
+        $record = \DB::table('email_verifications')->where('email', $request->email)->first();
+
+        if (!$record) {
+            return response()->json([
+                'message' => 'No verification request found. Please request a code first.',
+            ], 400);
+        }
+
+        if (now()->greaterThan($record->expires_at)) {
+            \DB::table('email_verifications')->where('email', $request->email)->delete();
+            return response()->json([
+                'message' => 'Code has expired. Please request a new one.',
+            ], 400);
+        }
+
+        if (!Hash::check($request->code, $record->code)) {
+            return response()->json([
+                'message' => 'Invalid verification code.',
+            ], 400);
+        }
+
+        return response()->json([
+            'message' => 'Email verified successfully.',
+            'verified' => true,
         ]);
     }
 }
