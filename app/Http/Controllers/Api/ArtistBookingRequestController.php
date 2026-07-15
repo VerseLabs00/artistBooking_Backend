@@ -120,8 +120,16 @@ class ArtistBookingRequestController extends Controller
             ->findOrFail($id);
 
 
-        if ($booking->booking_status === 'cancelled' || $booking->booking_status === 'completed') {
+        if (in_array($booking->booking_status, ['cancelled', 'completed'])) {
             return response()->json(['message' => 'Cannot update a completed or cancelled booking.'], 400);
+        }
+        // Artist can confirm a request that is awaiting confirmation
+        if ($booking->booking_status === 'awaiting_confirmation' && $validated['status'] === 'confirmed') {
+            // Set to confirmed — customer will now see the Complete Payment button
+        } elseif ($booking->booking_status === 'awaiting_confirmation' && $validated['status'] === 'rejected') {
+            // Artist declines — no payment was taken
+        } elseif ($booking->booking_status === 'awaiting_confirmation') {
+            return response()->json(['message' => 'Can only confirm or reject a pending request.'], 422);
         }
 
         $booking->update(['booking_status' => $validated['status']]);
@@ -170,7 +178,8 @@ class ArtistBookingRequestController extends Controller
             'venue_lat'       => $b->venue_lat,
             'venue_lng'       => $b->venue_lng,
             'agreed_price'    => $b->agreed_price,
-            'advance_amount'  => $b->advance_amount,
+            'advance_amount'          => $b->advance_amount,
+            'advance_payment_status'  => $b->advance_payment_status ?? 'pending',
             'balance_due'     => (float) $b->agreed_price - (float) $b->advance_amount,
             'customer'        => $b->customer,
             'customer_name'   => $b->customer_name,
@@ -189,3 +198,5 @@ class ArtistBookingRequestController extends Controller
         return $data;
     }
 }
+
+
