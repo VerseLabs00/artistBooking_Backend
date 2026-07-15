@@ -21,4 +21,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     Route::post('bookings/{id}/cancel', [BookingController::class, 'cancel']);
+
+    Route::post('bookings/{id}/retry-payment', [BookingController::class, 'retryPayment']);
 });
+

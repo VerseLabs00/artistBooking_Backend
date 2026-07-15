@@ -27,6 +27,7 @@ class Booking extends Model
         'venue_lng',
         'booking_status',
         'payment_status',
+        'advance_payment_status',
         'payhere_order_id',
         'payhere_payment_id',
         'payhere_status_code',
@@ -72,3 +73,4 @@ class Booking extends Model
         return $query->where('booking_status', 'pending_payment');
     }
 }
+
