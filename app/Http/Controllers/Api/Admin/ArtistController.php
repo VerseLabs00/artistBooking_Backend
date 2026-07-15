@@ -35,6 +35,11 @@ class ArtistController extends Controller
     public function show($id)
     {
         $artist = ArtistProfile::with(['user', 'bankDetails', 'user.artistMedia'])->findOrFail($id);
+        
+        if ($artist->bankDetails) {
+            $artist->bankDetails->makeVisible('account_number');
+        }
+
         return response()->json($artist);
     }
 
