@@ -173,6 +173,7 @@ class ArtistBookingRequestController extends Controller
             'payment_status'  => $b->payment_status,
             'event_date'      => $b->event_date?->toDateString(),
             'event_start_time'=> $b->event_start_time,
+            'event_end_time'  => $b->event_end_time,
             'event_type'      => $b->event_type,
             'venue'           => $b->venue,
             'venue_lat'       => $b->venue_lat,

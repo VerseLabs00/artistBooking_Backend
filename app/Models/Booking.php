@@ -14,6 +14,7 @@ class Booking extends Model
         'artist_profile_id',
         'event_date',
         'event_start_time',
+        'event_end_time',
         'event_duration_hours',
         'event_type',
         'venue',

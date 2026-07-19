@@ -41,6 +41,7 @@ class BookingController extends Controller
             'artist_profile_id'    => 'required|uuid|exists:artist_profiles,id',
             'event_date'           => 'required|date|after_or_equal:today',
             'event_start_time'     => 'required|date_format:H:i',
+            'event_end_time'       => 'nullable|date_format:H:i|after:event_start_time',
             'event_duration_hours' => 'nullable|numeric|min:0.5|max:24',
             'event_type'           => 'required|string|max:100',
             'venue'                => 'required|string|max:255',
@@ -60,12 +61,46 @@ class BookingController extends Controller
         $totalPayment   = $advanceAmount + $platformFee;
         $orderId        = 'BK-' . strtoupper(Str::random(10));
 
+        $durationHours = $validated['event_duration_hours'] ?? 2.0;
+        if (!empty($validated['event_end_time'])) {
+            $start = \Illuminate\Support\Carbon::createFromFormat('H:i', $validated['event_start_time']);
+            $end   = \Illuminate\Support\Carbon::createFromFormat('H:i', $validated['event_end_time']);
+            if ($end->greaterThan($start)) {
+                $durationHours = round($end->diffInMinutes($start) / 60, 1);
+            }
+        }
+
+        // Prevent duplicate bookings by checking if the exact booking already exists
+        $existingBooking = Booking::where('customer_id', $user->id)
+            ->where('artist_profile_id', $artist->id)
+            ->where('event_date', $validated['event_date'])
+            ->where('event_start_time', $validated['event_start_time'])
+            ->whereIn('booking_status', ['awaiting_confirmation', 'confirmed'])
+            ->first();
+
+        if ($existingBooking) {
+            return response()->json([
+                'booking' => [
+                    'id'             => $existingBooking->id,
+                    'order_id'       => $existingBooking->payhere_order_id,
+                    'agreed_price'   => $existingBooking->agreed_price,
+                    'advance_amount' => $existingBooking->advance_amount,
+                    'platform_fee'   => $existingBooking->platform_fee,
+                    'total_payment'  => $existingBooking->total_payment,
+                    'commission_rate'=> $existingBooking->commission_rate,
+                    'booking_status' => $existingBooking->booking_status,
+                    'payment_status' => $existingBooking->payment_status,
+                ],
+            ], 200);
+        }
+
         $booking = Booking::create([
             'customer_id'          => $user->id,
             'artist_profile_id'    => $artist->id,
             'event_date'           => $validated['event_date'],
             'event_start_time'     => $validated['event_start_time'],
-            'event_duration_hours' => $validated['event_duration_hours'] ?? 2.0,
+            'event_end_time'       => $validated['event_end_time'] ?? null,
+            'event_duration_hours' => $durationHours,
             'event_type'           => $validated['event_type'],
             'venue'                => $validated['venue'],
             'venue_lat'            => $validated['venue_lat'] ?? null,
