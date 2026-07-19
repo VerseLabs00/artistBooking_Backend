@@ -41,6 +41,7 @@ class BookingController extends Controller
             'artist_profile_id'    => 'required|uuid|exists:artist_profiles,id',
             'event_date'           => 'required|date|after_or_equal:today',
             'event_start_time'     => 'required|date_format:H:i',
+            'event_end_time'       => 'nullable|date_format:H:i|after:event_start_time',
             'event_duration_hours' => 'nullable|numeric|min:0.5|max:24',
             'event_type'           => 'required|string|max:100',
             'venue'                => 'required|string|max:255',
@@ -60,12 +61,22 @@ class BookingController extends Controller
         $totalPayment   = $advanceAmount + $platformFee;
         $orderId        = 'BK-' . strtoupper(Str::random(10));
 
+        $durationHours = $validated['event_duration_hours'] ?? 2.0;
+        if (!empty($validated['event_end_time'])) {
+            $start = \Illuminate\Support\Carbon::createFromFormat('H:i:s', $validated['event_start_time']);
+            $end   = \Illuminate\Support\Carbon::createFromFormat('H:i:s', $validated['event_end_time']);
+            if ($end->greaterThan($start)) {
+                $durationHours = round($end->diffInMinutes($start) / 60, 1);
+            }
+        }
+
         $booking = Booking::create([
             'customer_id'          => $user->id,
             'artist_profile_id'    => $artist->id,
             'event_date'           => $validated['event_date'],
             'event_start_time'     => $validated['event_start_time'],
-            'event_duration_hours' => $validated['event_duration_hours'] ?? 2.0,
+            'event_end_time'       => $validated['event_end_time'] ?? null,
+            'event_duration_hours' => $durationHours,
             'event_type'           => $validated['event_type'],
             'venue'                => $validated['venue'],
             'venue_lat'            => $validated['venue_lat'] ?? null,
