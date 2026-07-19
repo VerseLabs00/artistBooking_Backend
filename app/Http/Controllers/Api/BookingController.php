@@ -70,6 +70,30 @@ class BookingController extends Controller
             }
         }
 
+        // Prevent duplicate bookings by checking if the exact booking already exists
+        $existingBooking = Booking::where('customer_id', $user->id)
+            ->where('artist_profile_id', $artist->id)
+            ->where('event_date', $validated['event_date'])
+            ->where('event_start_time', $validated['event_start_time'])
+            ->whereIn('booking_status', ['awaiting_confirmation', 'confirmed'])
+            ->first();
+
+        if ($existingBooking) {
+            return response()->json([
+                'booking' => [
+                    'id'             => $existingBooking->id,
+                    'order_id'       => $existingBooking->payhere_order_id,
+                    'agreed_price'   => $existingBooking->agreed_price,
+                    'advance_amount' => $existingBooking->advance_amount,
+                    'platform_fee'   => $existingBooking->platform_fee,
+                    'total_payment'  => $existingBooking->total_payment,
+                    'commission_rate'=> $existingBooking->commission_rate,
+                    'booking_status' => $existingBooking->booking_status,
+                    'payment_status' => $existingBooking->payment_status,
+                ],
+            ], 200);
+        }
+
         $booking = Booking::create([
             'customer_id'          => $user->id,
             'artist_profile_id'    => $artist->id,
