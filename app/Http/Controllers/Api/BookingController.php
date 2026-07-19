@@ -63,8 +63,8 @@ class BookingController extends Controller
 
         $durationHours = $validated['event_duration_hours'] ?? 2.0;
         if (!empty($validated['event_end_time'])) {
-            $start = \Illuminate\Support\Carbon::createFromFormat('H:i:s', $validated['event_start_time']);
-            $end   = \Illuminate\Support\Carbon::createFromFormat('H:i:s', $validated['event_end_time']);
+            $start = \Illuminate\Support\Carbon::createFromFormat('H:i', $validated['event_start_time']);
+            $end   = \Illuminate\Support\Carbon::createFromFormat('H:i', $validated['event_end_time']);
             if ($end->greaterThan($start)) {
                 $durationHours = round($end->diffInMinutes($start) / 60, 1);
             }
